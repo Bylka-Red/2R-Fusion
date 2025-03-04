@@ -7,12 +7,12 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
   try {
     // Determine which template to use based on property type
     const isHouseInCopro = estimation.propertyType === 'house' && estimation.isInCopropriete;
-    const templatePath = estimation.propertyType === 'apartment' || isHouseInCopro 
+    const templatePath = estimation.propertyType === 'apartment' || isHouseInCopro
       ? '/templates/modele_estimation.docx'
       : '/templates/modele_estimation_maison.docx';
-    
+
     console.log(`Using template: ${templatePath} for property type: ${estimation.propertyType}, isInCopropriete: ${estimation.isInCopropriete}`);
-    
+
     // Charger le modèle Word
     console.log("Tentative de chargement du modèle Word...");
     const response = await fetch(templatePath);
@@ -179,35 +179,35 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       const propertyType = estimation.propertyType;
       const constructionYear = criteria.constructionYear;
       const hasGas = criteria.hasGas;
-      
+
       const currentYear = new Date().getFullYear();
       const isOlderThan15Years = constructionYear ? currentYear - constructionYear > 15 : false;
       const isBeforeAsbestos = constructionYear ? constructionYear < 1998 : false;
       const isBeforeLead = constructionYear ? constructionYear < 1949 : false;
       const isInCoproperty = propertyType === 'apartment' || estimation.isInCopropriete;
-      
+
       let requiredCount = 0;
-      
+
       // DPE - toujours obligatoire
       requiredCount++;
-      
+
       // Loi Carrez
       if (isInCoproperty) requiredCount++;
-      
+
       // Électricité
       if (isOlderThan15Years) requiredCount++;
-      
+
       // Gaz
       if (isOlderThan15Years && hasGas) requiredCount++;
-      
+
       // Amiante
       if (isBeforeAsbestos) requiredCount++;
-      
+
       // Plomb
       if (isBeforeLead) requiredCount++;
-      
+
       if (requiredCount === 0) return 0;
-      
+
       const prices = propertyType === 'apartment' || estimation.isInCopropriete ? {
         1: 90,
         2: 160,
@@ -223,7 +223,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         5: 370,
         6: 420,
       };
-      
+
       return prices[requiredCount as keyof typeof prices] || 0;
     };
 
@@ -237,22 +237,28 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
     if (estimation.commercial) {
       // Utiliser le prénom du commercial comme il est stocké
       prenomCommercial = estimation.commercial;
-      
+
       // Rechercher les informations complètes du commercial dans l'application
       // Note: Nous ne pouvons pas accéder directement à la liste des commerciaux ici
       // Donc nous allons utiliser des valeurs par défaut pour le reste
-      
+
       // Pour KABACHE Redhouane
       if (prenomCommercial === 'Redhouane') {
         nomCommercial = 'KABACHE';
         telephoneCommercial = '06 12 34 56 78';
         emailCommercial = 'redhouane@2r-immobilier.fr';
       }
-      // Pour MARTIN Jérémy
-      else if (prenomCommercial === 'Jérémy') {
-        nomCommercial = 'MARTIN';
-        telephoneCommercial = '06 23 45 67 89';
-        emailCommercial = 'jeremy@2r-immobilier.fr';
+      // Pour Audrey GABRIEL
+      else if (prenomCommercial === 'Audrey') {
+        nomCommercial = 'GABRIEL';
+        telephoneCommercial = '07 68 88 16 60';
+        emailCommercial = 'a.gabriel@2r-immobilier.fr';
+      }
+      // Pour Christelle MULLINGHAUSEN
+      else if (prenomCommercial === 'Christelle') {
+        nomCommercial = 'MULLINGHAUSEN';
+        telephoneCommercial = '06 38 22 60 70';
+        emailCommercial = 'm.christelle@2r-immobilier.fr';
       }
       // Valeurs par défaut pour les autres commerciaux
       else {
@@ -266,7 +272,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
     const pointsForts = (estimation.features || [])
       .filter(f => f.type === 'strength')
       .map(f => f.description);
-    
+
     const pointsFaibles = (estimation.features || [])
       .filter(f => f.type === 'weakness')
       .map(f => f.description);
@@ -279,7 +285,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
     const propertyType = estimation.propertyType;
     const constructionYear = criteria.constructionYear;
     const hasGas = criteria.hasGas;
-    
+
     const currentYear = new Date().getFullYear();
     const isOlderThan15Years = constructionYear ? currentYear - constructionYear > 15 : false;
     const isBeforeAsbestos = constructionYear ? constructionYear < 1998 : false;
@@ -335,7 +341,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       nomCommercial: nomCommercial,
       telephoneCommercial: telephoneCommercial,
       emailCommercial: emailCommercial,
-      
+
       // Ajouter les valeurs traduites directement aux clés anglaises
       kitchenType: kitchenTypeFrench,
       heatingSystem: heatingSystemFrench,
@@ -344,7 +350,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       constructionMaterial: constructionMaterialFrench,
       adjacency: adjacencyFrench,
       basement: basementFrench,
-      
+
       // Convertir les booléens en texte
       hasCellar: getBooleanText(criteria.hasCellar),
       hasGarden: getBooleanText(criteria.hasGarden),
@@ -357,7 +363,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       hasElectricShutters: getBooleanText(criteria.hasElectricShutters),
       hasElectricGate: getBooleanText(criteria.hasElectricGate),
       hasConvertibleAttic: getBooleanText(criteria.hasConvertibleAttic),
-      
+
       // Autres critères numériques
       bathrooms: criteria.bathrooms || 0,
       floorNumber: criteria.floorNumber || 0,
@@ -366,7 +372,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       livingRoomSurface: criteria.livingRoomSurface || 0,
       landSurface: criteria.landSurface || 0,
       constructionYear: criteria.constructionYear || '',
-      
+
       // Ajout du prix des diagnostics obligatoires
       calculateMandatoryPrice: calculateMandatoryPrice(),
 
@@ -378,11 +384,11 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       diagAmiante: isBeforeAsbestos ? "☑" : "☐",
       diagPlomb: isBeforeLead ? "☑" : "☐",
       diagERP: "☑", // Toujours obligatoire
-      
+
       // Diagnostics supplémentaires
       diagAssainissement: "☐", // Par défaut non coché
       diagPreEtatDate: isInCoproperty ? "☑" : "☐",
-      
+
       // Textes explicatifs pour les diagnostics
       texteDiagCarrez: isInCoproperty ? "Obligatoire" : "Non applicable",
       texteDiagDPE: "Obligatoire",
@@ -393,7 +399,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       texteDiagERP: "Obligatoire",
       texteDiagAssainissement: "Recommandé",
       texteDiagPreEtatDate: isInCoproperty ? "Recommandé" : "Non applicable",
-      
+
       // Informations spécifiques pour les maisons
       isHouse: estimation.propertyType === 'house',
       isApartment: estimation.propertyType === 'apartment',
