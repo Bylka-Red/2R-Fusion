@@ -99,25 +99,25 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
     // Cuisine
     let kitchenTypeFrench = '';
     switch(criteria.kitchenType) {
-      case 'open-equipped': kitchenTypeFrench = 'Cuisine ouverte équipée'; break;
-      case 'open-not-equipped': kitchenTypeFrench = 'Cuisine ouverte non équipée'; break;
-      case 'closed-equipped': kitchenTypeFrench = 'Cuisine fermée équipée'; break;
-      case 'closed-not-equipped': kitchenTypeFrench = 'Cuisine fermée non équipée'; break;
-      case 'american': kitchenTypeFrench = 'Cuisine américaine'; break;
-      case 'integrated': kitchenTypeFrench = 'Cuisine intégrée'; break;
+      case 'open-equipped': kitchenTypeFrench = 'ouverte équipée'; break;
+      case 'open-not-equipped': kitchenTypeFrench = 'ouverte non équipée'; break;
+      case 'closed-equipped': kitchenTypeFrench = 'fermée équipée'; break;
+      case 'closed-not-equipped': kitchenTypeFrench = 'fermée non équipée'; break;
+      case 'american': kitchenTypeFrench = 'américaine'; break;
+      case 'integrated': kitchenTypeFrench = 'intégrée'; break;
       default: kitchenTypeFrench = criteria.kitchenType || '';
     }
 
     // Chauffage
     let heatingSystemFrench = '';
     switch(criteria.heatingSystem) {
-      case 'individual-gas': heatingSystemFrench = 'Chauffage individuel au gaz'; break;
-      case 'individual-electric': heatingSystemFrench = 'Chauffage individuel électrique'; break;
-      case 'collective-gas': heatingSystemFrench = 'Chauffage collectif au gaz'; break;
-      case 'collective-fuel': heatingSystemFrench = 'Chauffage collectif au fioul'; break;
-      case 'heat-pump': heatingSystemFrench = 'Pompe à chaleur'; break;
-      case 'wood': heatingSystemFrench = 'Chauffage au bois'; break;
-      case 'none': heatingSystemFrench = 'Pas de chauffage'; break;
+      case 'individual-gas': heatingSystemFrench = 'individuel au gaz'; break;
+      case 'individual-electric': heatingSystemFrench = 'individuel électrique'; break;
+      case 'collective-gas': heatingSystemFrench = 'collectif au gaz'; break;
+      case 'collective-fuel': heatingSystemFrench = 'collectif au fioul'; break;
+      case 'heat-pump': heatingSystemFrench = 'pompe à chaleur'; break;
+      case 'wood': heatingSystemFrench = 'au bois'; break;
+      case 'none': heatingSystemFrench = 'pas de chauffage'; break;
       default: heatingSystemFrench = criteria.heatingSystem || '';
     }
 
@@ -269,6 +269,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
     }
 
     // Formater les points forts et points faibles pour qu'ils s'affichent sur des lignes séparées
+    // Mais sans les tirets au début
     const pointsForts = (estimation.features || [])
       .filter(f => f.type === 'strength')
       .map(f => f.description);
@@ -277,9 +278,9 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       .filter(f => f.type === 'weakness')
       .map(f => f.description);
 
-    // Créer des versions formatées avec des sauts de ligne
-    const pointsFortsFormatted = pointsForts.map(point => `- ${point}`).join('\n');
-    const pointsFaiblesFormatted = pointsFaibles.map(point => `- ${point}`).join('\n');
+    // Créer des versions formatées sans les tirets
+    const pointsFortsFormatted = pointsForts.join('\n');
+    const pointsFaiblesFormatted = pointsFaibles.join('\n');
 
     // Déterminer les diagnostics obligatoires
     const propertyType = estimation.propertyType;
@@ -292,6 +293,13 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
     const isBeforeLead = constructionYear ? constructionYear < 1949 : false;
     const isInCoproperty = propertyType === 'apartment' || estimation.isInCopropriete;
 
+    // Extraire la ville seule de l'adresse complète
+    const extractCityOnly = (fullAddress: string) => {
+      const codePostalIndex = fullAddress.search(/\d{5}/); // Recherche le code postal à 5 chiffres
+      if (codePostalIndex === -1) return '';
+      return fullAddress.substring(codePostalIndex + 6).trim().toUpperCase(); // +6 pour sauter le code postal et l'espace
+    };
+
     // Préparer les données pour remplacer les balises
     const data = {
       // Informations propriétaire
@@ -303,12 +311,16 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
 
       // Informations bien
       adresseBien: estimation.propertyAddress?.fullAddress || '',
+      villeBien: extractCityOnly(estimation.propertyAddress?.fullAddress || ''),
       typeBien: estimation.propertyType === 'house' ? 'Maison' : 'Appartement',
       surface: estimation.surface || '',
       pieces: estimation.rooms || '',
       chambres: estimation.bedrooms || '',
       etatGeneral: getConditionText(estimation.condition || ''),
       anneeConstruction: criteria.constructionYear || '',
+      etage: criteria.floorNumber || '',
+      nombreEtages: criteria.totalFloors || '',
+      chargesCopro: criteria.chargesCopro || 0, // Champ à ajouter dans le modèle de données
 
       // Points forts et faibles (versions originales et formatées)
       pointsForts: pointsForts,
@@ -327,13 +339,18 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       prixRecommande: formatPrice(estimation.estimatedPrice?.recommended || 0),
       prixBas: formatPrice(estimation.estimatedPrice?.low || 0),
       prixHaut: formatPrice(estimation.estimatedPrice?.high || 0),
+      fourchetteHaute: formatPrice(estimation.estimatedPrice?.high || 0),
+      fourchetteHauteChiffre: estimation.estimatedPrice?.high || 0,
+      fourchetteBasseChiffre: estimation.estimatedPrice?.low || 0,
+      fourchetteBasseFormatted: new Intl.NumberFormat('fr-FR').format(estimation.estimatedPrice?.low || 0),
+      fourchetteBasse: new Intl.NumberFormat('fr-FR').format(estimation.estimatedPrice?.low || 0),
       prixM2: formatPrice(estimation.pricePerSqm || 0),
 
       // Commentaires
       commentaires: estimation.comments || '',
 
       // Date
-      dateEstimation: formatDate(estimation.createdAt || ''),
+      dateEstimation: formatDate(estimation.visitDate || ''),
       dateVisite: formatDate(estimation.visitDate || ''),
 
       // Commercial
@@ -386,7 +403,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
       diagERP: "☑", // Toujours obligatoire
 
       // Diagnostics supplémentaires
-      diagAssainissement: "☐", // Par défaut non coché
+      diagAssainissement: "☑", // Toujours coché
       diagPreEtatDate: isInCoproperty ? "☑" : "☐",
 
       // Textes explicatifs pour les diagnostics
