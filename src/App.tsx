@@ -59,123 +59,6 @@ const testCadastralSection: CadastralSection = {
   surface: '8520',
 };
 
-const testEstimation: Estimation = {
-  id: crypto.randomUUID(),
-  createdAt: '2024-03-15T10:00:00.000Z',
-  status: 'completed',
-  visitDate: '2024-03-15',
-  propertyAddress: {
-    fullAddress: '12 rue des Lilas, 77400 Lagny-sur-Marne',
-  },
-  propertyType: 'apartment',
-  isInCopropriete: true,
-  surface: 85,
-  rooms: 4,
-  bedrooms: 2,
-  constructionYear: 1985,
-  energyClass: 'D',
-  condition: 'good',
-  features: [
-    { type: 'strength', description: 'Lumineux et traversant' },
-    { type: 'strength', description: 'Proche des commerces et écoles' },
-    { type: 'strength', description: 'Balcon exposé sud' },
-    { type: 'strength', description: 'Cave et parking inclus' },
-    { type: 'strength', description: 'Double vitrage récent' },
-    { type: 'weakness', description: 'Cuisine à rafraîchir' },
-    { type: 'weakness', description: 'Salle de bain d\'origine' },
-    { type: 'weakness', description: 'Pas d\'ascenseur (3ème étage)' },
-  ],
-  comparables: [
-    {
-      address: '8 rue des Roses, 77400 Lagny-sur-Marne',
-      price: 295000,
-      surface: 82,
-      rooms: 4,
-      saleDate: '2024-02-01',
-    },
-    {
-      address: '15 rue du Commerce, 77400 Lagny-sur-Marne',
-      price: 305000,
-      surface: 88,
-      rooms: 4,
-      saleDate: '2024-01-15',
-    },
-  ],
-  marketAnalysis: {
-    averagePrice: 300000,
-    priceRange: {
-      min: 285000,
-      max: 315000,
-    },
-    marketTrend: 'stable',
-    averageSaleTime: 90,
-  },
-  estimatedPrice: {
-    low: 290000,
-    recommended: 298000,
-    high: 305000,
-  },
-  pricePerSqm: 3505,
-  comments: 'Bel appartement familial dans une résidence calme et bien entretenue. Idéalement situé à proximité des commerces, écoles et transports. Quelques travaux de rafraîchissement à prévoir dans la cuisine et la salle de bain.',
-  owners: [{
-    firstName: 'Jean',
-    lastName: 'DUPONT',
-    address: '12 rue des Lilas, 77400 Lagny-sur-Marne',
-    phones: ['06 12 34 56 78'],
-    emails: ['jean.dupont@email.com']
-  }],
-  criteria: {
-    hasElevator: true,
-    floorNumber: 3,
-    totalFloors: 4,
-    heatingType: 'individual',
-    heatingEnergy: 'gas',
-    hasAirConditioning: false,
-    hasCellar: true,
-    hasParking: true,
-    hasBalcony: true,
-    hasTerrace: false,
-    hasGarden: false,
-    exposure: 'south',
-    windowsType: 'double',
-    constructionMaterial: 'concrete',
-    livingRoomSurface: 28,
-    bathrooms: 1,
-    showerRooms: 0,
-    kitchenType: 'open-equipped',
-    heatingSystem: 'individual-gas',
-    adjacency: 'both-sides',
-    basement: 'none',
-    landSurface: 0,
-    constructionYear: 1985,
-    propertyTax: 1200,
-    hasGas: true,
-    hasGarage: true,
-    hasFireplace: false,
-    hasWoodStove: false,
-    hasElectricShutters: true,
-    hasElectricGate: true,
-    hasConvertibleAttic: false,
-  },
-  diagnosticInfo: {
-    propertyType: 'copropriete',
-    hasCityGas: true
-  },
-  comparablePhotos: [],
-  forSalePhotos: [],
-  planPhotos: [],
-  photos: [
-    {
-      url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2',
-      description: 'Salon lumineux',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8',
-      description: 'Cuisine équipée',
-    },
-  ],
-};
-
 const testMandate: Mandate = {
   date: '2024-03-20',
   type: 'exclusive',
@@ -230,7 +113,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('sellers');
   const [selectedMandate, setSelectedMandate] = useState<Mandate | null>(null);
   const [mandates, setMandates] = useState<Mandate[]>([testMandate]);
-  const [estimations, setEstimations] = useState<Estimation[]>([testEstimation]);
+  const [estimations, setEstimations] = useState<Estimation[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([{ ...testSeller }]);
   const [propertyAddress, setPropertyAddress] = useState<PropertyAddress>({ fullAddress: '12 rue des Lilas, 77400 Lagny-sur-Marne' });
   const [propertyType, setPropertyType] = useState<'monopropriete' | 'copropriete'>('copropriete');

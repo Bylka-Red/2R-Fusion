@@ -19,123 +19,89 @@ interface EstimationFormProps {
   commercials: Commercial[];
 }
 
-const sampleEstimation: Estimation = {
-  id: crypto.randomUUID(),
-  createdAt: new Date().toISOString(),
-  status: 'draft',
-  visitDate: '2024-03-15',
-  commercial: 'Redhouane',
-  owners: [{
-    firstName: 'Jean',
-    lastName: 'DUPONT',
-    address: '12 rue des Lilas, 77400 Lagny-sur-Marne',
-    phones: ['06 12 34 56 78'],
-    emails: ['jean.dupont@email.com']
-  }],
-  propertyAddress: { 
-    fullAddress: '12 rue des Lilas, 77400 Lagny-sur-Marne' 
-  },
-  propertyType: 'apartment',
-  isInCopropriete: false,
-  surface: 85,
-  rooms: 4,
-  bedrooms: 2,
-  constructionYear: 1985,
-  energyClass: 'D',
-  condition: 'good',
-  criteria: {
-    hasElevator: true,
-    floorNumber: 3,
-    totalFloors: 4,
-    heatingType: 'individual',
-    heatingEnergy: 'gas',
-    hasAirConditioning: false,
-    hasCellar: true,
-    hasParking: true,
-    hasBalcony: true,
-    hasTerrace: false,
-    hasGarden: false,
-    exposure: 'south',
-    windowsType: 'double',
-    constructionMaterial: 'concrete',
-    livingRoomSurface: 28,
-    bathrooms: 1,
-    showerRooms: 0,
-    kitchenType: 'open-equipped',
-    heatingSystem: 'individual-gas',
-    adjacency: 'both-sides',
-    basement: 'none',
-    landSurface: 0,
-    constructionYear: 1985,
-    propertyTax: 1200,
-    hasGas: true,
-    hasGarage: true,
-    hasFireplace: false,
-    hasWoodStove: false,
-    hasElectricShutters: true,
-    hasElectricGate: true,
-    hasConvertibleAttic: false,
-  },
-  diagnosticInfo: {
-    propertyType: 'copropriete',
-    hasCityGas: true
-  },
-  features: [
-    { type: 'strength', description: 'Lumineux et traversant' },
-    { type: 'strength', description: 'Proche des commerces et écoles' },
-    { type: 'strength', description: 'Balcon exposé sud' },
-    { type: 'strength', description: 'Cave et parking inclus' },
-    { type: 'strength', description: 'Double vitrage récent' },
-    { type: 'weakness', description: 'Cuisine à rafraîchir' },
-    { type: 'weakness', description: 'Salle de bain d\'origine' },
-    { type: 'weakness', description: 'Pas d\'ascenseur (3ème étage)' },
-  ],
-  comparables: [
-    {
-      address: '8 rue des Roses, 77400 Lagny-sur-Marne',
-      price: 295000,
-      surface: 82,
-      rooms: 4,
-      saleDate: '2024-02-01',
-    },
-    {
-      address: '15 rue du Commerce, 77400 Lagny-sur-Marne',
-      price: 305000,
-      surface: 88,
-      rooms: 4,
-      saleDate: '2024-01-15',
-    },
-  ],
-  comparablePhotos: [],
-  forSalePhotos: [],
-  planPhotos: [],
-  marketAnalysis: {
-    averagePrice: 300000,
-    priceRange: {
-      min: 285000,
-      max: 315000,
-    },
-    marketTrend: 'stable',
-    averageSaleTime: 90,
-  },
-  estimatedPrice: {
-    low: 290000,
-    high: 305000,
-    recommended: 298000,
-  },
-  pricePerSqm: 3505,
-  comments: 'Bel appartement familial dans une résidence calme et bien entretenue. Idéalement situé à proximité des commerces, écoles et transports. Quelques travaux de rafraîchissement à prévoir dans la cuisine et la salle de bain.',
-  photos: [],
-};
-
 export function EstimationForm({ estimation, onSave, onCancel, commercials }: EstimationFormProps) {
   // Generate a unique ID for each new estimation
   const uniqueId = useRef(crypto.randomUUID()).current;
   
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Estimation>(estimation || {
-    ...sampleEstimation,
-    id: uniqueId, // Use the unique ID generated for this form instance
+    id: uniqueId,
+    createdAt: new Date().toISOString(),
+    status: 'draft',
+    visitDate: new Date().toISOString().split('T')[0],
+    commercial: commercials[0]?.firstName || '',
+    owners: [{
+      firstName: '',
+      lastName: '',
+      address: '',
+      phones: [''],
+      emails: ['']
+    }],
+    propertyAddress: { 
+      fullAddress: '' 
+    },
+    propertyType: 'apartment',
+    isInCopropriete: false,
+    surface: 0,
+    rooms: 0,
+    bedrooms: 0,
+    condition: 'good',
+    criteria: {
+      hasElevator: false,
+      floorNumber: 0,
+      totalFloors: 0,
+      heatingType: 'individual',
+      heatingEnergy: 'gas',
+      hasAirConditioning: false,
+      hasCellar: false,
+      hasParking: false,
+      hasBalcony: false,
+      hasTerrace: false,
+      hasGarden: false,
+      exposure: 'south',
+      windowsType: 'double',
+      constructionMaterial: 'concrete',
+      livingRoomSurface: 0,
+      bathrooms: 0,
+      showerRooms: 0,
+      kitchenType: 'open-equipped',
+      heatingSystem: 'individual-gas',
+      adjacency: 'both-sides',
+      basement: 'none',
+      landSurface: 0,
+      propertyTax: 0,
+      hasGas: false,
+      hasGarage: false,
+      hasFireplace: false,
+      hasWoodStove: false,
+      hasElectricShutters: false,
+      hasElectricGate: false,
+      hasConvertibleAttic: false,
+    },
+    diagnosticInfo: {
+      propertyType: 'copropriete',
+      hasCityGas: false
+    },
+    features: [],
+    comparables: [],
+    comparablePhotos: [],
+    forSalePhotos: [],
+    planPhotos: [],
+    marketAnalysis: {
+      averagePrice: 0,
+      priceRange: {
+        min: 0,
+        max: 0,
+      },
+      marketTrend: 'stable',
+      averageSaleTime: 0,
+    },
+    estimatedPrice: {
+      low: 0,
+      high: 0,
+    },
+    pricePerSqm: 0,
+    photos: [],
   });
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
