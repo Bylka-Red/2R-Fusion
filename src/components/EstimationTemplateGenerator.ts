@@ -167,21 +167,25 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             const isBeforeLead = constructionYear ? constructionYear < 1949 : false;
             const isInCoproperty = propertyType === 'apartment' || estimation.isInCopropriete;
             let requiredCount = 0;
-
+        
+            // DPE - toujours obligatoire
+            requiredCount++;
+        
             if (isInCoproperty) requiredCount++; // Loi Carrez
             if (isOlderThan15Years) requiredCount++; // Électricité
             if (isOlderThan15Years && hasGas) requiredCount++; // Gaz
             if (isBeforeAsbestos) requiredCount++; // Amiante
             if (isBeforeLead) requiredCount++; // Plomb
-
+        
             if (requiredCount === 0) return 0;
-
-            const prices = propertyType === 'apartment' || estimation.isInCopropriete
+        
+            const prices = propertyType === 'apartment' || estimation.isInCoproperty
                 ? { 1: 90, 2: 160, 3: 220, 4: 270, 5: 320, 6: 370 }
                 : { 1: 120, 2: 200, 3: 270, 4: 320, 5: 370, 6: 420 };
-
+        
             return prices[requiredCount as keyof typeof prices] || 0;
         };
+        
 
         // Préparer les informations du commercial
         let prenomCommercial = '';
@@ -233,7 +237,9 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         const isInCoproperty = propertyType === 'apartment' || estimation.isInCopropriete;
 
         // Préparer les données pour remplacer les balises
+        const titreProprietaire = estimation.owners[0]?.title || '';
         const data = {
+            titreProprietaire: titreProprietaire,
             prenomProprietaire: estimation.owners[0]?.firstName || '',
             nomProprietaire: estimation.owners[0]?.lastName || '',
             adresseProprietaire: estimation.owners[0]?.address || '',
@@ -249,7 +255,9 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             anneeConstruction: criteria.constructionYear || '',
             etage: criteria.floorNumber || criteria.floor || '',
             nombreEtages: criteria.totalFloors || criteria.floorCount || '',
-            chargesCopro: criteria.coproFees || criteria.chargesCopro || '',
+            chargesCopro: criteria.coproFees || criteria.chargesCopro
+            ? `${criteria.coproFees || criteria.chargesCopro} €`
+            : '',
             pointsForts: pointsForts,
             pointsFaibles: pointsFaibles,
             pointsFortsFormatted: pointsFortsFormatted,
