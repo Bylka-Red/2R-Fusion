@@ -58,7 +58,7 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
       hasTerrace: false,
       hasGarden: false,
       exposure: 'south',
-      windowsType: 'single',
+      windowsType: 'double',
       constructionMaterial: 'concrete',
       livingRoomSurface: 0,
       bathrooms: 0,

@@ -49,7 +49,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Estimations Card - Now first */}
+          {/* Estimations Card */}
           <div 
             onClick={() => onNavigate('estimations')}
             className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden group"
@@ -65,12 +65,12 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
               <span className="text-sm font-medium text-[#0b8043] group-hover:text-[#097339] transition-colors">
-                Accéder aux estimations →
+                →
               </span>
             </div>
           </div>
 
-          {/* Mandats Card - Now second */}
+          {/* Mandats Card */}
           <div 
             onClick={() => onNavigate('mandates')}
             className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden group"
@@ -86,19 +86,21 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
               <span className="text-sm font-medium text-[#0b8043] group-hover:text-[#097339] transition-colors">
-                Accéder aux mandats →
+                →
               </span>
             </div>
           </div>
         </div>
 
-        <div className="mt-16 text-center">
-          <p className="text-sm text-gray-500">
-            2R FUSION - 92 Rue Saint-Denis, 77400 LAGNY-SUR-MARNE<br />
-            Tél : 01.64.30.66.88 - Email : contact@2r-immobilier.fr<br />
-            SAS au capital de 5000€ - RCS MEAUX 823 147 285
-          </p>
-        </div>
+        <footer className="fixed bottom-0 w-full bg-white border-t border-gray-200 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center items-center text-sm text-gray-500">
+              <span>2R IMMOBILIER</span>
+              <span className="mx-2">•</span>
+              <span>&copy; {new Date().getFullYear()}</span>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
