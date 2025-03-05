@@ -45,7 +45,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
 
         const formatDate = (dateString) => {
             if (!dateString) return '';
-        
+
             // Vérifiez si la date est au format DD/MM/YYYY
             const parts = dateString.split('/');
             if (parts.length === 3) {
@@ -54,35 +54,34 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
                 const year = parts[2];
                 dateString = `${year}-${month}-${day}`;
             }
-        
+
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
                 console.error('Date invalide :', dateString); // Log pour vérifier si la date est invalide
                 return '';
             }
-        
+
             console.log('Date formatée :', date.toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
             })); // Log pour vérifier la date formatée
-        
+
             return date.toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
             });
         };
-        
+
         // Avant d'appeler formatDate
         console.log('Date avant formatage :', estimation.estimationDate);
-        
+
         // Appel de la fonction
         const formattedDate = formatDate(estimation.estimationDate);
-        
+
         // Vérifiez la date formatée
-        console.log('Date après formatage :', formattedDate);       
-        
+        console.log('Date après formatage :', formattedDate);
 
         const getConditionText = (condition: string) => {
             const conditions = {
@@ -203,22 +202,22 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             const isBeforeLead = constructionYear ? constructionYear < 1949 : false;
             const isInCoproperty = propertyType === 'apartment' || estimation.isInCopropriete;
             let requiredCount = 0;
-        
+
             // DPE - toujours obligatoire
             requiredCount++;
-        
+
             if (isInCoproperty) requiredCount++; // Loi Carrez
             if (isOlderThan15Years) requiredCount++; // Électricité
             if (isOlderThan15Years && hasGas) requiredCount++; // Gaz
             if (isBeforeAsbestos) requiredCount++; // Amiante
             if (isBeforeLead) requiredCount++; // Plomb
-        
+
             if (requiredCount === 0) return 0;
-        
+
             const prices = propertyType === 'apartment' || estimation.isInCopropriete
                 ? { 1: 90, 2: 160, 3: 220, 4: 270, 5: 320, 6: 370 }
                 : { 1: 120, 2: 200, 3: 270, 4: 320, 5: 370, 6: 420 };
-        
+
             return prices[requiredCount as keyof typeof prices] || 0;
         };
 
@@ -333,6 +332,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             hasFireplace: getBooleanText(criteria.hasFireplace),
             hasWoodStove: getBooleanText(criteria.hasWoodStove),
             hasElectricShutters: getBooleanText(criteria.hasElectricShutters),
+            hasParkingBox: getBooleanText(criteria.hasParkingBox), // Ajout de la case "Parking/Box"
             hasElectricGate: getBooleanText(criteria.hasElectricGate),
             hasConvertibleAttic: getBooleanText(criteria.hasConvertibleAttic),
             bathrooms: criteria.bathrooms || 0,

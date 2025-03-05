@@ -414,14 +414,14 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.criteria.hasElectricGate || false}
+                    checked={formData.criteria.hasParkingBox || false}
                     onChange={(e) => handleChange('criteria', {
                       ...formData.criteria,
-                      hasElectricGate: e.target.checked
+                      hasParkingBox: e.target.checked
                     })}
                     className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
                   />
-                  <span className="text-sm">Portail électrique</span>
+                  <span className="text-sm">Parking/Box</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
