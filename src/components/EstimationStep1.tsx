@@ -16,6 +16,8 @@ interface EstimationStep1Props {
   commercial: string;
   onCommercialChange: (commercial: string) => void;
   commercials: Commercial[];
+  estimationDate: string;
+  onEstimationDateChange: (date: string) => void;
 }
 
 const EstimationStep1: React.FC<EstimationStep1Props> = ({
@@ -30,7 +32,9 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
   onNext,
   commercial,
   onCommercialChange,
-  commercials
+  commercials,
+  estimationDate,
+  onEstimationDateChange
 }) => {
   const addOwner = () => {
     onOwnersChange([
@@ -85,6 +89,8 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
               </div>
               <input
                 type="date"
+                value={estimationDate}
+                onChange={(e) => onEstimationDateChange(e.target.value)}
                 className="h-[38px] w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
               />
             </label>

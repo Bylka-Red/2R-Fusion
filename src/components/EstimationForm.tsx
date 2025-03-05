@@ -20,9 +20,8 @@ interface EstimationFormProps {
 }
 
 export function EstimationForm({ estimation, onSave, onCancel, commercials }: EstimationFormProps) {
-  // Generate a unique ID for each new estimation
   const uniqueId = useRef(crypto.randomUUID()).current;
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Estimation>(estimation || {
     id: uniqueId,
@@ -37,8 +36,8 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
       phones: [''],
       emails: ['']
     }],
-    propertyAddress: { 
-      fullAddress: '' 
+    propertyAddress: {
+      fullAddress: ''
     },
     propertyType: 'apartment',
     isInCopropriete: false,
@@ -102,7 +101,9 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     },
     pricePerSqm: 0,
     photos: [],
+    estimationDate: '01/01/1900', // Ajoutez cette ligne
   });
+
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
 
@@ -119,6 +120,10 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleEstimationDateChange = (newDate: string) => {
+    handleChange('estimationDate', newDate);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const updatedFormData = { ...formData, status: 'completed' as const };
@@ -133,7 +138,6 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
 
   const handleWordExport = async () => {
     try {
-      // Utiliser la nouvelle fonction basée sur le modèle Word
       await generateEstimationFromTemplate(formData);
     } catch (error) {
       console.error('Error generating Word document:', error);
@@ -201,6 +205,8 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
             commercial={formData.commercial}
             onCommercialChange={(commercial) => handleChange('commercial', commercial)}
             commercials={commercials}
+            estimationDate={formData.estimationDate}
+            onEstimationDateChange={handleEstimationDateChange} // Passez la fonction ici
           />
         );
 
@@ -250,7 +256,7 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
             {pdfError && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
                 {pdfError}
-                <button 
+                <button
                   onClick={() => setPdfError(null)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
@@ -269,10 +275,10 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <EstimationTabs 
-          tabs={tabs} 
-          currentStep={currentStep} 
-          setCurrentStep={setCurrentStep} 
+        <EstimationTabs
+          tabs={tabs}
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
         />
 
         <div className="mb-8">

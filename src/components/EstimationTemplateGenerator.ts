@@ -43,10 +43,46 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price).replace('€', '').trim();
         };
 
-        const formatDate = (dateString: string) => {
+        const formatDate = (dateString) => {
             if (!dateString) return '';
-            return new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+            // Vérifiez si la date est au format DD/MM/YYYY
+            const parts = dateString.split('/');
+            if (parts.length === 3) {
+                const day = parts[0];
+                const month = parts[1];
+                const year = parts[2];
+                dateString = `${year}-${month}-${day}`;
+            }
+        
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                console.error('Date invalide :', dateString); // Log pour vérifier si la date est invalide
+                return '';
+            }
+        
+            console.log('Date formatée :', date.toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            })); // Log pour vérifier la date formatée
+        
+            return date.toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
         };
+        
+        // Avant d'appeler formatDate
+        console.log('Date avant formatage :', estimation.estimationDate);
+        
+        // Appel de la fonction
+        const formattedDate = formatDate(estimation.estimationDate);
+        
+        // Vérifiez la date formatée
+        console.log('Date après formatage :', formattedDate);       
+        
 
         const getConditionText = (condition: string) => {
             const conditions = {
@@ -179,13 +215,12 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         
             if (requiredCount === 0) return 0;
         
-            const prices = propertyType === 'apartment' || estimation.isInCoproperty
+            const prices = propertyType === 'apartment' || estimation.isInCopropriete
                 ? { 1: 90, 2: 160, 3: 220, 4: 270, 5: 320, 6: 370 }
                 : { 1: 120, 2: 200, 3: 270, 4: 320, 5: 370, 6: 420 };
         
             return prices[requiredCount as keyof typeof prices] || 0;
         };
-        
 
         // Préparer les informations du commercial
         let prenomCommercial = '';
@@ -256,8 +291,8 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             etage: criteria.floorNumber || criteria.floor || '',
             nombreEtages: criteria.totalFloors || criteria.floorCount || '',
             chargesCopro: criteria.coproFees || criteria.chargesCopro
-            ? `${criteria.coproFees || criteria.chargesCopro} €`
-            : '',
+                ? `${criteria.coproFees || criteria.chargesCopro} €`
+                : '',
             pointsForts: pointsForts,
             pointsFaibles: pointsFaibles,
             pointsFortsFormatted: pointsFortsFormatted,
@@ -277,8 +312,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             fourchetteBasse: new Intl.NumberFormat('fr-FR').format(estimation.estimatedPrice?.low || 0),
             prixM2: formatPrice(estimation.pricePerSqm || 0),
             commentaires: estimation.comments || '',
-            dateEstimation: formatDate(estimation.visitDate),
-            dateVisite: formatDate(estimation.visitDate),
+            dateEstimation: formatDate(estimation.estimationDate),
             prenomCommercial: prenomCommercial,
             nomCommercial: nomCommercial,
             telephoneCommercial: telephoneCommercial,

@@ -34,6 +34,7 @@ export type PropertyCriteria = {
   hasElectricShutters: boolean;
   hasElectricGate: boolean;
   hasConvertibleAttic: boolean;
+  chargesCopro?: number;
 };
 
 export type DiagnosticInfo = {
@@ -83,7 +84,7 @@ export type Estimation = {
   id: string;
   createdAt: string;
   status: EstimationStatus;
-  visitDate: string;
+  estimationDate: string;
   owners: Owner[];
   notes?: string;
   commercial?: string;
