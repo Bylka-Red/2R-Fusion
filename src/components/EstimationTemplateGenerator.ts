@@ -57,15 +57,8 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
 
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
-                console.error('Date invalide :', dateString); // Log pour vérifier si la date est invalide
                 return '';
             }
-
-            console.log('Date formatée :', date.toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            })); // Log pour vérifier la date formatée
 
             return date.toLocaleDateString('fr-FR', {
                 day: 'numeric',
@@ -255,6 +248,24 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         const pointsFortsFormatted = pointsForts.join('\n');
         const pointsFaiblesFormatted = pointsFaibles.join('\n');
 
+        // Calculer les totaux des prix au m²
+        const calculateAverage = (prices: string[]) => {
+            const numericPrices = prices.map(price => parseInt(price.replace(/[^0-9]/g, '')) || 0);
+            const sum = numericPrices.reduce((acc, curr) => acc + curr, 0);
+            return numericPrices.length ? Math.floor(sum / numericPrices.length) : 0;
+        };
+
+        const soldPrices = (estimation.features || [])
+            .filter(f => f.type === 'soldPrice')
+            .map(f => f.description);
+
+        const forSalePrices = (estimation.features || [])
+            .filter(f => f.type === 'forSalePrice')
+            .map(f => f.description);
+
+        const soldPricesTotal = calculateAverage(soldPrices);
+        const forSalePricesTotal = calculateAverage(forSalePrices);
+
         // Déterminer les diagnostics obligatoires
         const propertyType = estimation.propertyType;
         const constructionYear = criteria.constructionYear;
@@ -264,6 +275,43 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         const isBeforeAsbestos = constructionYear ? constructionYear < 1998 : false;
         const isBeforeLead = constructionYear ? constructionYear < 1949 : false;
         const isInCoproperty = propertyType === 'apartment' || estimation.isInCopropriete;
+
+        // Calculer les jours écoulés depuis les dates de vente
+        const calculateDaysSince = (dateString: string) => {
+            const dateParts = dateString.split('/');
+            if (dateParts.length !== 3) return '';
+            const [day, month, year] = dateParts.map(Number);
+            const date = new Date(year, month - 1, day);
+            const today = new Date();
+
+            let diffYears = today.getFullYear() - date.getFullYear();
+            let diffMonths = today.getMonth() - date.getMonth();
+            let diffDays = today.getDate() - date.getDate();
+
+            // Ajustement pour les années et les mois
+            if (diffDays < 0) {
+                diffMonths -= 1;
+                const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                diffDays += lastMonth.getDate();
+            }
+            if (diffMonths < 0) {
+                diffYears -= 1;
+                diffMonths += 12;
+            }
+
+            // Construction du résultat
+            let result = [];
+            if (diffYears > 0) result.push(`${diffYears} an${diffYears > 1 ? 's' : ''}`);
+            if (diffMonths > 0) result.push(`${diffMonths} mois`);
+            if (diffDays > 0 || result.length === 0) result.push(`${diffDays} jour${diffDays > 1 ? 's' : ''}`);
+
+            return result.join(' et ');
+        };
+
+        // Extraire les résultats des dates de vente
+        const saleDates = (estimation.features || [])
+            .filter(f => f.type === 'saleDate')
+            .map(f => calculateDaysSince(f.description));
 
         // Préparer les données pour remplacer les balises
         const titreProprietaire = estimation.owners[0]?.title || '';
@@ -360,7 +408,13 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             isHouse: estimation.propertyType === 'house',
             isApartment: estimation.propertyType === 'apartment',
             isHouseInCopro: isHouseInCopro,
-        };
+            totalPrixM2Vendus: soldPricesTotal ? formatPrice(soldPricesTotal) : 'N/A', // Ajout de la balise pour le total des prix au m² vendus
+            totalPrixM2AVendre: forSalePricesTotal ? formatPrice(forSalePricesTotal) : 'N/A', // Ajout de la balise pour le total des prix au m² à vendre
+            enVenteDepuis1: saleDates[0] ? `En vente depuis ${saleDates[0]}` : 'Bien similaire N°1',
+            enVenteDepuis2: saleDates[1] ? `En vente depuis ${saleDates[1]}` : 'Bien similaire N°2',
+            enVenteDepuis3: saleDates[2] ? `En vente depuis ${saleDates[2]}` : 'Bien similaire N°3',
+            enVenteDepuis4: saleDates[3] ? `En vente depuis ${saleDates[3]}` : 'Bien similaire N°4',
+};
 
         console.log("Valeur de etatGeneral avant rendu :", data.etatGeneral);
         console.log("Données complètes passées à Docxtemplater :", data);

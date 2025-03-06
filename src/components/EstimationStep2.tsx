@@ -760,10 +760,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.criteria.windowsType === 'double'}
+                    checked={formData.criteria.hasDoubleGlazing || false}
                     onChange={(e) => handleChange('criteria', {
                       ...formData.criteria,
-                      windowsType: e.target.checked ? 'double' : 'single'
+                      hasDoubleGlazing: e.target.checked
                     })}
                     className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
                   />
@@ -1143,10 +1143,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.criteria.windowsType === 'double'}
+                    checked={formData.criteria.hasDoubleGlazing || false}
                     onChange={(e) => handleChange('criteria', {
                       ...formData.criteria,
-                      windowsType: e.target.checked ? 'double' : 'single'
+                      hasDoubleGlazing: e.target.checked
                     })}
                     className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
                   />
