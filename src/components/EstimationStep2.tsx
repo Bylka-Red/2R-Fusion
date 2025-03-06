@@ -70,27 +70,26 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
       <div className="space-y-4">
         <label>
           <span className="required">Adresse du bien</span>
-        <div className="flex items-center gap-2 w-full">
-  <div className="w-[450px]">
-    <AddressAutocomplete
-      value={formData.propertyAddress.fullAddress}
-      onChange={({ label }) =>
-        handleChange('propertyAddress', { fullAddress: label })
-      }
-      placeholder="Saisissez l'adresse du bien"
-      className="w-full" // Assurez-vous que le champ prend toute la place disponible dans le flex-grow
-    />
-  </div>
-  <button
-    type="button"
-    onClick={copyFirstSellerAddress}
-    className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200"
-    title="Copier l'adresse du propriétaire"
-  >
-    <Copy className="h-5 w-5" />
-  </button>
-</div>
-
+          <div className="flex items-center gap-2 w-full">
+            <div className="w-[450px]">
+              <AddressAutocomplete
+                value={formData.propertyAddress.fullAddress}
+                onChange={({ label }) =>
+                  handleChange('propertyAddress', { fullAddress: label })
+                }
+                placeholder="Saisissez l'adresse du bien"
+                className="w-full"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={copyFirstSellerAddress}
+              className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200"
+              title="Copier l'adresse du propriétaire"
+            >
+              <Copy className="h-5 w-5" />
+            </button>
+          </div>
         </label>
 
         {formData.propertyType === 'apartment' && (
@@ -390,10 +389,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.criteria.windowsType === 'double'}
+                    checked={formData.criteria.hasDoubleGlazing || false}
                     onChange={(e) => handleChange('criteria', {
                       ...formData.criteria,
-                      windowsType: e.target.checked ? 'double' : 'single'
+                      hasDoubleGlazing: e.target.checked
                     })}
                     className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
                   />
@@ -806,6 +805,18 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                   />
                   <span className="text-sm">Combles aménageables</span>
                 </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.criteria.hasBasement || false}
+                    onChange={(e) => handleChange('criteria', {
+                      ...formData.criteria,
+                      hasBasement: e.target.checked
+                    })}
+                    className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
+                  />
+                  <span className="text-sm">Sous-sol</span>
+                </label>
               </div>
             </div>
           </div>
@@ -1176,6 +1187,18 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                     className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
                   />
                   <span className="text-sm">Combles aménageables</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.criteria.hasBasement || false}
+                    onChange={(e) => handleChange('criteria', {
+                      ...formData.criteria,
+                      hasBasement: e.target.checked
+                    })}
+                    className="rounded border-gray-300 text-primary focus:ring-primary transition duration-200"
+                  />
+                  <span className="text-sm">Sous-sol</span>
                 </label>
               </div>
             </div>

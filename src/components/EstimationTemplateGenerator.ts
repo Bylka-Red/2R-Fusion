@@ -115,7 +115,13 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         };
 
         // Vérification des données criteria
-        console.log("Données criteria :", estimation.criteria);
+        console.log("Données criteria complètes :", estimation.criteria);
+        console.log("Valeur de livingRoomSurface :", estimation.criteria.livingRoomSurface);
+
+        // Vérification de la valeur de condition
+        console.log("Valeur de condition :", estimation.condition);
+        const conditionText = getConditionText(estimation.condition);
+        console.log("Texte traduit pour condition :", conditionText);
 
         // S'assurer que les critères existent
         const criteria = estimation.criteria || {};
@@ -124,23 +130,21 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         let kitchenTypeFrench = '';
         switch (criteria.kitchenType) {
             case 'open-equipped': kitchenTypeFrench = 'ouverte équipée'; break;
-            case 'open-not-equipped': kitchenTypeFrench = 'ouverte non équipée'; break;
             case 'closed-equipped': kitchenTypeFrench = 'fermée équipée'; break;
-            case 'closed-not-equipped': kitchenTypeFrench = 'fermée non équipée'; break;
-            case 'american': kitchenTypeFrench = 'américaine'; break;
-            case 'integrated': kitchenTypeFrench = 'intégrée'; break;
+            case 'open-fitted': kitchenTypeFrench = 'ouverte aménagée'; break;
+            case 'closed-fitted': kitchenTypeFrench = 'fermée aménagée'; break;
+            case 'to-create': kitchenTypeFrench = 'à créer'; break;
             default: kitchenTypeFrench = criteria.kitchenType || '';
         }
 
         let heatingSystemFrench = '';
         switch (criteria.heatingSystem) {
+            case 'electric': heatingSystemFrench = 'électrique'; break;
             case 'individual-gas': heatingSystemFrench = 'individuel au gaz'; break;
-            case 'individual-electric': heatingSystemFrench = 'individuel électrique'; break;
             case 'collective-gas': heatingSystemFrench = 'collectif au gaz'; break;
-            case 'collective-fuel': heatingSystemFrench = 'collectif au fioul'; break;
             case 'heat-pump': heatingSystemFrench = 'pompe à chaleur'; break;
-            case 'wood': heatingSystemFrench = 'au bois'; break;
-            case 'none': heatingSystemFrench = 'pas de chauffage'; break;
+            case 'fuel': heatingSystemFrench = 'fuel'; break;
+            case 'collective-geothermal': heatingSystemFrench = 'géothermique collectif'; break;
             default: heatingSystemFrench = criteria.heatingSystem || '';
         }
 
@@ -161,7 +165,6 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
         switch (criteria.windowsType) {
             case 'single': windowsTypeFrench = 'Simple vitrage'; break;
             case 'double': windowsTypeFrench = 'Double vitrage'; break;
-            case 'triple': windowsTypeFrench = 'Triple vitrage'; break;
             default: windowsTypeFrench = criteria.windowsType || '';
         }
 
@@ -181,14 +184,6 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             case 'semi-detached': adjacencyFrench = 'Mitoyen d\'un côté'; break;
             case 'both-sides': adjacencyFrench = 'Mitoyen des deux côtés'; break;
             default: adjacencyFrench = criteria.adjacency || '';
-        }
-
-        let basementFrench = '';
-        switch (criteria.basement) {
-            case 'full': basementFrench = 'Sous-sol complet'; break;
-            case 'partial': basementFrench = 'Sous-sol partiel'; break;
-            case 'none': basementFrench = 'Pas de sous-sol'; break;
-            default: basementFrench = criteria.basement || '';
         }
 
         // Calcul du prix des diagnostics obligatoires
@@ -231,8 +226,8 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             prenomCommercial = estimation.commercial;
             if (prenomCommercial === 'Redhouane') {
                 nomCommercial = 'KABACHE';
-                telephoneCommercial = '06 12 34 56 78';
-                emailCommercial = 'redhouane@2r-immobilier.fr';
+                telephoneCommercial = '06 18 24 46 40';
+                emailCommercial = 'contact@2r-immobilier.fr';
             } else if (prenomCommercial === 'Audrey') {
                 nomCommercial = 'GABRIEL';
                 telephoneCommercial = '07 68 88 16 60';
@@ -285,7 +280,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             surface: estimation.surface || '',
             pieces: estimation.rooms || '',
             chambres: estimation.bedrooms || '',
-            etatGeneral: getConditionText(estimation.condition || ''),
+            etatGeneral: conditionText,
             anneeConstruction: criteria.constructionYear || '',
             etage: criteria.floorNumber || criteria.floor || '',
             nombreEtages: criteria.totalFloors || criteria.floorCount || '',
@@ -322,9 +317,10 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             windowsType: windowsTypeFrench,
             constructionMaterial: constructionMaterialFrench,
             adjacency: adjacencyFrench,
-            basement: basementFrench,
+            basement: getBooleanText(criteria.hasBasement), // Utilisation de hasBasement pour déterminer la présence d'un sous-sol
             hasCellar: getBooleanText(criteria.hasCellar),
             hasGarden: getBooleanText(criteria.hasGarden),
+            hasDoubleGlazing: getBooleanText(criteria.hasDoubleGlazing),
             hasBalcony: getBooleanText(criteria.hasBalcony),
             hasTerrace: getBooleanText(criteria.hasTerrace),
             hasElevator: getBooleanText(criteria.hasElevator),
@@ -366,6 +362,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             isHouseInCopro: isHouseInCopro,
         };
 
+        console.log("Valeur de etatGeneral avant rendu :", data.etatGeneral);
         console.log("Données complètes passées à Docxtemplater :", data);
 
         try {

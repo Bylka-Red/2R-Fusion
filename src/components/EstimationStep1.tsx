@@ -77,6 +77,14 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
     );
   };
 
+  const formatPhoneNumber = (value) => {
+    // Supprime tous les caractères non numériques
+    const cleaned = value.replace(/\D/g, '');
+    // Ajoute un espace après chaque groupe de deux chiffres
+    const match = cleaned.match(/(\d{1,2})/g);
+    return match ? match.join(' ') : '';
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="space-y-8">
@@ -172,7 +180,7 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
                       type="text"
                       value={owner.lastName}
                       onChange={(e) =>
-                        updateOwner(index, 'lastName', e.target.value)
+                        updateOwner(index, 'lastName', e.target.value.toUpperCase())
                       }
                       placeholder="Nom du propriétaire"
                       className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
@@ -220,7 +228,7 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
                       type="tel"
                       value={owner.phones[0]}
                       onChange={(e) =>
-                        updateOwner(index, 'phones', e.target.value)
+                        updateOwner(index, 'phones', formatPhoneNumber(e.target.value))
                       }
                       placeholder="Numéro de téléphone"
                       className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
@@ -235,7 +243,7 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
                       type="email"
                       value={owner.emails[0]}
                       onChange={(e) =>
-                        updateOwner(index, 'emails', e.target.value)
+                        updateOwner(index, 'emails', e.target.value.toLowerCase())
                       }
                       placeholder="Adresse email"
                       className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
