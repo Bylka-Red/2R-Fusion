@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Settings } from 'lucide-react';
 import { SellersTab } from './components/SellersTab';
 import { PropertyTab } from './components/PropertyTab';
@@ -108,12 +108,26 @@ const initialCommercials: Commercial[] = [
   }
 ];
 
+// Fonction pour charger les données depuis le localStorage
+const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const savedData = localStorage.getItem(key);
+    return savedData ? JSON.parse(savedData) : defaultValue;
+  } catch (error) {
+    console.error(`Error loading ${key} from localStorage:`, error);
+    return defaultValue;
+  }
+};
+
 function App() {
   const [view, setView] = useState<'home' | 'estimations' | 'mandates' | 'settings'>('home');
   const [activeTab, setActiveTab] = useState('sellers');
   const [selectedMandate, setSelectedMandate] = useState<Mandate | null>(null);
   const [mandates, setMandates] = useState<Mandate[]>([testMandate]);
-  const [estimations, setEstimations] = useState<Estimation[]>([]);
+  // Chargement initial des estimations depuis le localStorage
+  const [estimations, setEstimations] = useState<Estimation[]>(() => 
+    loadFromLocalStorage('estimations', [])
+  );
   const [sellers, setSellers] = useState<Seller[]>([{ ...testSeller }]);
   const [propertyAddress, setPropertyAddress] = useState<PropertyAddress>({ fullAddress: '12 rue des Lilas, 77400 Lagny-sur-Marne' });
   const [propertyType, setPropertyType] = useState<'monopropriete' | 'copropriete'>('copropriete');
@@ -125,7 +139,28 @@ function App() {
   const [occupationStatus, setOccupationStatus] = useState<OccupationStatus>('occupied-by-seller');
   const [dpeStatus, setDpeStatus] = useState<DPEStatus>('completed');
   const [showAmendmentModal, setShowAmendmentModal] = useState(false);
-  const [commercials, setCommercials] = useState<Commercial[]>(initialCommercials);
+  // Chargement initial des commerciaux depuis le localStorage
+  const [commercials, setCommercials] = useState<Commercial[]>(() => 
+    loadFromLocalStorage('commercials', initialCommercials)
+  );
+
+  // Sauvegarde des estimations dans le localStorage à chaque modification
+  useEffect(() => {
+    try {
+      localStorage.setItem('estimations', JSON.stringify(estimations));
+    } catch (error) {
+      console.error('Error saving estimations to localStorage:', error);
+    }
+  }, [estimations]);
+
+  // Sauvegarde des commerciaux dans le localStorage à chaque modification
+  useEffect(() => {
+    try {
+      localStorage.setItem('commercials', JSON.stringify(commercials));
+    } catch (error) {
+      console.error('Error saving commercials to localStorage:', error);
+    }
+  }, [commercials]);
 
   const createNewMandate = () => {
     const newMandate: Mandate = {
