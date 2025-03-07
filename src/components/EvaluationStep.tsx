@@ -307,7 +307,7 @@ export function EvaluationStep({
                     const formattedDate = formatDate(e.target.value);
                     updateFeature(features.indexOf(feature), formattedDate);
                   }}
-                  placeholder="Ex: 20112025"
+                  placeholder="Ex: 07032025"
                   className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
                 />
                 <button
