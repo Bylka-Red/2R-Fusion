@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Minus, ArrowDown, Download, FileText } from 'lucide-react';
+import { Plus, Minus, ArrowDown, Download, FileText, Users, LayoutGrid, Home, ClipboardList, Activity, Save, Sliders } from 'lucide-react';
 import type { Estimation, PropertyFeature, Comparable, ComparablePhoto, PropertyCriteria, DiagnosticInfo, Owner, Commercial } from '../types';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { DiagnosticsStep } from './DiagnosticsStep';
@@ -191,12 +191,12 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   };
 
   const tabs = [
-    { id: 1, name: 'Propriétaires' },
-    { id: 2, name: 'Surfaces' },
-    { id: 3, name: 'Bien' },
-    { id: 4, name: 'Évaluation' },
-    { id: 5, name: 'Diagnostics' },
-    { id: 6, name: 'Générer' },
+    { id: 1, name: 'Propriétaires', icon: Users },
+    { id: 2, name: 'Pièces', icon: LayoutGrid },
+    { id: 3, name: 'Critères', icon: Sliders }, // Changement ici
+    { id: 4, name: 'Évaluation', icon: ClipboardList },
+    { id: 5, name: 'Diagnostics', icon: Activity },
+    { id: 6, name: 'Générer', icon: Save },
   ];
 
   const renderStepContent = () => {

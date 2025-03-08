@@ -51,7 +51,6 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
     const searchResults: SearchResult[] = [];
 
     estimations.forEach(estimation => {
-      // Recherche par propriétaire
       estimation.owners.forEach(owner => {
         const fullName = `${owner.firstName} ${owner.lastName}`.toLowerCase();
         if (fullName.includes(normalizedQuery)) {
@@ -77,7 +76,6 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
         }
       });
 
-      // Recherche par adresse
       if (estimation.propertyAddress.fullAddress.toLowerCase().includes(normalizedQuery)) {
         searchResults.push({
           estimation,
@@ -86,7 +84,6 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
         });
       }
 
-      // Recherche par commercial
       if (estimation.commercial?.toLowerCase().includes(normalizedQuery)) {
         searchResults.push({
           estimation,
@@ -96,7 +93,6 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
       }
     });
 
-    // Supprimer les doublons basés sur l'ID de l'estimation
     return searchResults.filter((result, index, self) =>
       index === self.findIndex(r => r.estimation.id === result.estimation.id)
     );
@@ -124,7 +120,6 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
       setShowSuggestions(true);
       onSearch(searchResults.map(r => r.estimation));
 
-      // Calculer le nombre d'estimations par commercial si la recherche correspond à un commercial
       const commercialMatch = value.toLowerCase();
       const commercialResults = estimations.filter(
         e => e.commercial?.toLowerCase().includes(commercialMatch)
@@ -169,11 +164,11 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
 
   return (
     <div ref={searchRef} className="relative flex-1">
-      <div className="relative">
+      <div className="relative flex items-center">
         {isLoading ? (
-          <Loader2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
+          <Loader2 className="absolute left-4 h-5 w-5 text-gray-400 animate-spin" />
         ) : (
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-4 h-5 w-5 text-gray-400" />
         )}
         <input
           type="text"
@@ -184,17 +179,18 @@ export function SearchBar({ estimations, onSearch }: SearchBarProps) {
               setShowSuggestions(true);
             }
           }}
-          placeholder="Rechercher par nom, prénom, adresse ou commercial..."
-          className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200"
+          placeholder="Rechercher par nom, téléphone, adresse ou commercial..."
+          className="block w-full pl-16 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200"
+          style={{ paddingLeft: '4rem' }} // Ajout d'un padding à gauche pour éviter le chevauchement
         />
         {query && (
           <XCircle
-            className="absolute right-12 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 cursor-pointer"
+            className="h-5 w-5 text-gray-400 cursor-pointer ml-2"
             onClick={handleReset}
           />
         )}
         {selectedCommercialCount && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+          <div className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
             {selectedCommercialCount.name}: {selectedCommercialCount.count} estimation{selectedCommercialCount.count > 1 ? 's' : ''}
           </div>
         )}
