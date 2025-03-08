@@ -276,7 +276,7 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 />
               </label>
               <label>
-                <span>Charges De Copro : €/Mois</span>
+                <span>Charges de Copro : €/Mois</span>
                 <input
                   type="number"
                   value={formData.criteria.coproFees || ''}
@@ -1006,7 +1006,7 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 />
               </label>
               <label>
-                <span>Charges De Copro : €/Mois</span>
+                <span>Charges de Copro : €/Mois</span>
                 <input
                   type="number"
                   value={formData.criteria.coproFees || ''}
