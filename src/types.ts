@@ -1,5 +1,16 @@
 import React from 'react';
 
+export type Room = {
+  name: string;
+  area: number;
+};
+
+export type Level = {
+  name: string;
+  rooms: Room[];
+  type?: 'basement' | 'regular';
+};
+
 export type EstimationStatus = 'draft' | 'completed' | 'converted';
 
 export type PropertyCriteria = {
@@ -108,6 +119,7 @@ export type Estimation = {
   comparablePhotos: ComparablePhoto[];
   forSalePhotos: ComparablePhoto[];
   planPhotos: ComparablePhoto[];
+  levels: Level[];
   
   estimatedPrice: {
     low: number;

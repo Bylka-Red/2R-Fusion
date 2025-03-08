@@ -9,9 +9,9 @@ import { HomePage } from './components/HomePage';
 import { SettingsTab } from './components/SettingsTab';
 import { PurchaseOfferTab } from './components/PurchaseOfferTab';
 import { CompromiseTab } from './components/CompromiseTab';
+import { RoomAreaInput } from './components/RoomAreaInput';
 import type { Seller, PropertyLot, PropertyAddress, CadastralSection, Mandate, OccupationStatus, DPEStatus, Estimation, Commercial } from './types';
 
-// Test data moved to separate const declarations for clarity
 const testSeller: Seller = {
   type: 'individual',
   title: 'Mr',
@@ -108,7 +108,15 @@ const initialCommercials: Commercial[] = [
   }
 ];
 
-// Fonction pour charger les données depuis le localStorage
+const tabs = [
+  { id: 1, name: 'Propriétaires' },
+  { id: 2, name: 'Surfaces' },
+  { id: 3, name: 'Bien' },
+  { id: 4, name: 'Évaluation' },
+  { id: 5, name: 'Diagnostics' },
+  { id: 6, name: 'Générer' },
+];
+
 const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
   try {
     const savedData = localStorage.getItem(key);
@@ -124,7 +132,6 @@ function App() {
   const [activeTab, setActiveTab] = useState('sellers');
   const [selectedMandate, setSelectedMandate] = useState<Mandate | null>(null);
   const [mandates, setMandates] = useState<Mandate[]>([testMandate]);
-  // Chargement initial des estimations depuis le localStorage
   const [estimations, setEstimations] = useState<Estimation[]>(() => 
     loadFromLocalStorage('estimations', [])
   );
@@ -139,12 +146,10 @@ function App() {
   const [occupationStatus, setOccupationStatus] = useState<OccupationStatus>('occupied-by-seller');
   const [dpeStatus, setDpeStatus] = useState<DPEStatus>('completed');
   const [showAmendmentModal, setShowAmendmentModal] = useState(false);
-  // Chargement initial des commerciaux depuis le localStorage
   const [commercials, setCommercials] = useState<Commercial[]>(() => 
     loadFromLocalStorage('commercials', initialCommercials)
   );
 
-  // Sauvegarde des estimations dans le localStorage à chaque modification
   useEffect(() => {
     try {
       localStorage.setItem('estimations', JSON.stringify(estimations));
@@ -153,7 +158,6 @@ function App() {
     }
   }, [estimations]);
 
-  // Sauvegarde des commerciaux dans le localStorage à chaque modification
   useEffect(() => {
     try {
       localStorage.setItem('commercials', JSON.stringify(commercials));
@@ -278,7 +282,6 @@ function App() {
       setView('mandates');
       setActiveTab('sellers');
 
-      // Update estimation status
       const updatedEstimation = { ...estimation, status: 'converted' as const };
       setEstimations(prevEstimations =>
         prevEstimations.map(est =>
@@ -286,7 +289,6 @@ function App() {
         )
       );
 
-      // Initialize mandate data with estimation information
       if (estimation.owners[0]) {
         const seller: Seller = {
           type: 'individual',
@@ -312,7 +314,6 @@ function App() {
     }
   };
 
-  // Render the header consistently across all views
   const renderHeader = () => (
     <header className="bg-[#0b8043] shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -371,6 +372,41 @@ function App() {
       </div>
     </header>
   );
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <EstimationStep1
+            owners={formData.owners}
+            onOwnersChange={(owners) => handleChange('owners', owners)}
+            propertyAddress={formData.propertyAddress}
+            onPropertyAddressChange={(address) => handleChange('propertyAddress', address)}
+            propertyType={formData.propertyType}
+            onPropertyTypeChange={(type) => handleChange('propertyType', type)}
+            isInCopropriete={formData.isInCopropriete}
+            onIsInCoproprieteChange={(value) => handleChange('isInCopropriete', value)}
+            onNext={() => setCurrentStep(2)}
+            commercial={formData.commercial}
+            onCommercialChange={(commercial) => handleChange('commercial', commercial)}
+            commercials={commercials}
+            estimationDate={formData.estimationDate}
+            onEstimationDateChange={handleEstimationDateChange}
+          />
+        );
+
+      case 2:
+        return (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">Surfaces des pièces</h2>
+            <RoomAreaInput
+              levels={formData.levels || []}
+              onChange={(levels) => handleChange('levels', levels)}
+            />
+          </div>
+        );
+    }
+  };
 
   if (view === 'home') {
     return (

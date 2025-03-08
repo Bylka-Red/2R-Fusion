@@ -1,11 +1,12 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Euro, Camera, Calendar, Home, Building2, User, MapPin, Copy, Trash2, Phone, Mail, Plus, FileText, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Minus, ArrowDown, Download, FileText } from 'lucide-react';
 import type { Estimation, PropertyFeature, Comparable, ComparablePhoto, PropertyCriteria, DiagnosticInfo, Owner, Commercial } from '../types';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { DiagnosticsStep } from './DiagnosticsStep';
 import { EvaluationStep } from './EvaluationStep';
 import EstimationStep1 from './EstimationStep1';
 import EstimationStep2 from './EstimationStep2';
+import { RoomAreaInput } from './RoomAreaInput';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { EstimationReport } from './EstimationReport';
 import { generateEstimationWord } from './EstimationWord';
@@ -101,7 +102,12 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     },
     pricePerSqm: 0,
     photos: [],
-    estimationDate: '01/01/1900', // Ajoutez cette ligne
+    estimationDate: new Date().toISOString().split('T')[0],
+    levels: [{
+      name: 'Rez-de-chaussée',
+      rooms: [],
+      type: 'regular'
+    }]
   });
 
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -122,6 +128,10 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
 
   const handleEstimationDateChange = (newDate: string) => {
     handleChange('estimationDate', newDate);
+  };
+
+  const handleLivingAreaChange = (area: number) => {
+    handleChange('surface', area);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -182,10 +192,11 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
 
   const tabs = [
     { id: 1, name: 'Propriétaires' },
-    { id: 2, name: 'Bien' },
-    { id: 3, name: 'Évaluation' },
-    { id: 4, name: 'Diagnostics' },
-    { id: 5, name: 'Générer' },
+    { id: 2, name: 'Surfaces' },
+    { id: 3, name: 'Bien' },
+    { id: 4, name: 'Évaluation' },
+    { id: 5, name: 'Diagnostics' },
+    { id: 6, name: 'Générer' },
   ];
 
   const renderStepContent = () => {
@@ -206,47 +217,59 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
             onCommercialChange={(commercial) => handleChange('commercial', commercial)}
             commercials={commercials}
             estimationDate={formData.estimationDate}
-            onEstimationDateChange={handleEstimationDateChange} // Passez la fonction ici
+            onEstimationDateChange={handleEstimationDateChange}
           />
         );
 
       case 2:
         return (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">Surfaces des pièces</h2>
+            <RoomAreaInput
+              levels={formData.levels || []}
+              onChange={(levels) => handleChange('levels', levels)}
+              onLivingAreaChange={handleLivingAreaChange}
+            />
+          </div>
+        );
+
+      case 3:
+        return (
           <EstimationStep2
             formData={formData}
             handleChange={handleChange}
             copyFirstSellerAddress={copyFirstSellerAddress}
-            onNext={() => setCurrentStep(3)}
+            onNext={() => setCurrentStep(4)}
           />
         );
 
-      case 3:
+      case 4:
         return (
           <EvaluationStep
             features={formData.features}
             onFeaturesChange={(features) => handleChange('features', features)}
             estimatedPrice={formData.estimatedPrice}
             onEstimatedPriceChange={(price) => handleChange('estimatedPrice', price)}
-            onNext={() => setCurrentStep(4)}
-            onPrevious={() => setCurrentStep(2)}
+            onNext={() => setCurrentStep(5)}
+            onPrevious={() => setCurrentStep(3)}
             onCancel={onCancel}
           />
         );
 
-      case 4:
+      case 5:
         return (
           <DiagnosticsStep
             propertyType={formData.propertyType}
             constructionYear={formData.criteria.constructionYear}
             hasGas={formData.criteria.hasGas}
-            onNext={() => setCurrentStep(5)}
-            onPrevious={() => setCurrentStep(3)}
+            onNext={() => setCurrentStep(6)}
+            onPrevious={() => setCurrentStep(4)}
             onCancel={onCancel}
             isInCopropriete={formData.isInCopropriete}
           />
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900">Générer l'estimation</h3>
@@ -303,7 +326,7 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
             >
               Annuler
             </button>
-            {currentStep === 5 ? (
+            {currentStep === 6 ? (
               <div className="flex gap-4">
                 <button
                   type="button"
