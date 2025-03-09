@@ -205,10 +205,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <span>Étage</span>
                 <input
                   type="number"
-                  value={formData.criteria.floor || ''}
+                  value={formData.criteria.floorNumber || ''}
                   onChange={(e) => handleChange('criteria', {
                     ...formData.criteria,
-                    floor: parseInt(e.target.value) || ''
+                    floorNumber: parseInt(e.target.value) || ''
                   })}
                   min="0"
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
@@ -218,10 +218,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <span>Nombre d'étages</span>
                 <input
                   type="number"
-                  value={formData.criteria.floorCount || ''}
+                  value={formData.criteria.totalFloors || ''}
                   onChange={(e) => handleChange('criteria', {
                     ...formData.criteria,
-                    floorCount: parseInt(e.target.value) || ''
+                    totalFloors: parseInt(e.target.value) || ''
                   })}
                   min="0"
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
@@ -230,13 +230,12 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
               <label>
                 <span>Niveau</span>
                 <input
-                  type="number"
-                  value={formData.criteria.level || ''}
+                  type="text"
+                  value={formData.criteria.floorLevel || ''}
                   onChange={(e) => handleChange('criteria', {
                     ...formData.criteria,
-                    level: parseInt(e.target.value) || ''
+                    floorLevel: e.target.value
                   })}
-                  min="0"
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
                 />
               </label>
@@ -279,10 +278,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <span>Charges de Copro : €/Mois</span>
                 <input
                   type="number"
-                  value={formData.criteria.coproFees || ''}
+                  value={formData.criteria.chargesCopro || ''}
                   onChange={(e) => handleChange('criteria', {
                     ...formData.criteria,
-                    coproFees: parseInt(e.target.value) || ''
+                    chargesCopro: parseInt(e.target.value) || ''
                   })}
                   min="0"
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"
@@ -1009,10 +1008,10 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
                 <span>Charges de Copro : €/Mois</span>
                 <input
                   type="number"
-                  value={formData.criteria.coproFees || ''}
+                  value={formData.criteria.chargesCopro || ''}
                   onChange={(e) => handleChange('criteria', {
                     ...formData.criteria,
-                    coproFees: parseInt(e.target.value) || ''
+                    chargesCopro: parseInt(e.target.value) || ''
                   })}
                   min="0"
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm transition-colors duration-200"

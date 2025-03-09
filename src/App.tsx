@@ -10,6 +10,8 @@ import { SettingsTab } from './components/SettingsTab';
 import { PurchaseOfferTab } from './components/PurchaseOfferTab';
 import { CompromiseTab } from './components/CompromiseTab';
 import { RoomAreaInput } from './components/RoomAreaInput';
+import { AuthForm } from './components/AuthForm';
+import { supabase } from './lib/supabase';
 import type { Seller, PropertyLot, PropertyAddress, CadastralSection, Mandate, OccupationStatus, DPEStatus, Estimation, Commercial } from './types';
 
 const testSeller: Seller = {
@@ -128,6 +130,7 @@ const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
 };
 
 function App() {
+  const [session, setSession] = useState(null);
   const [view, setView] = useState<'home' | 'estimations' | 'mandates' | 'settings'>('home');
   const [activeTab, setActiveTab] = useState('sellers');
   const [selectedMandate, setSelectedMandate] = useState<Mandate | null>(null);
@@ -151,6 +154,14 @@ function App() {
   );
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem('estimations', JSON.stringify(estimations));
     } catch (error) {
@@ -165,6 +176,10 @@ function App() {
       console.error('Error saving commercials to localStorage:', error);
     }
   }, [commercials]);
+
+  if (!session) {
+    return <AuthForm />;
+  }
 
   const createNewMandate = () => {
     const newMandate: Mandate = {

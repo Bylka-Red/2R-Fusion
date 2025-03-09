@@ -8,7 +8,11 @@ export type Room = {
 export type Level = {
   name: string;
   rooms: Room[];
-  type?: 'basement' | 'regular';
+  type: 'basement' | 'regular' | 'outbuilding';
+  floorNumber?: number;
+  totalFloors?: number;
+  floorLevel?: string;
+  chargesCopro?: number;
 };
 
 export type EstimationStatus = 'draft' | 'completed' | 'converted';
@@ -19,21 +23,17 @@ export type PropertyCriteria = {
   totalFloors?: number;
   heatingType: 'individual' | 'collective' | 'none';
   heatingEnergy: 'gas' | 'electricity' | 'fuel' | 'wood' | 'other' | 'none';
-  hasAirConditioning: boolean;
   hasCellar: boolean;
   hasParking: boolean;
   hasBalcony: boolean;
   hasTerrace: boolean;
   hasGarden: boolean;
   exposure: 'north' | 'south' | 'east' | 'west' | 'north-east' | 'north-west' | 'south-east' | 'south-west';
-  windowsType: 'single' | 'double' | 'triple';
-  constructionMaterial: 'brick' | 'stone' | 'concrete' | 'wood' | 'other';
   livingRoomSurface: number;
   bathrooms: number;
   showerRooms: number;
   kitchenType: string;
   heatingSystem: string;
-  adjacency: string;
   basement: string;
   landSurface: number;
   constructionYear?: number;
@@ -46,18 +46,12 @@ export type PropertyCriteria = {
   hasElectricGate: boolean;
   hasConvertibleAttic: boolean;
   chargesCopro?: number;
+  floorLevel?: string;
 };
 
 export type DiagnosticInfo = {
   propertyType: 'monopropriete' | 'copropriete' | 'asl';
   hasCityGas: boolean;
-};
-
-export type ComparablePhoto = {
-  file: File;
-  preview: string;
-  description: string;
-  type: 'sold' | 'forSale' | 'plan' | 'cadastre';
 };
 
 export type Comparable = {
@@ -99,7 +93,7 @@ export type Estimation = {
   owners: Owner[];
   notes?: string;
   commercial?: string;
-  
+
   propertyAddress: PropertyAddress;
   propertyType: 'house' | 'apartment';
   isInCopropriete: boolean;
@@ -110,29 +104,21 @@ export type Estimation = {
   constructionYear?: number;
   energyClass?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
   condition: 'new' | 'excellent' | 'good' | 'needs-work' | 'to-renovate';
-  
+
   criteria: PropertyCriteria;
   diagnosticInfo: DiagnosticInfo;
   features: PropertyFeature[];
   comparables: Comparable[];
   marketAnalysis: MarketAnalysis;
-  comparablePhotos: ComparablePhoto[];
-  forSalePhotos: ComparablePhoto[];
-  planPhotos: ComparablePhoto[];
   levels: Level[];
-  
+
   estimatedPrice: {
     low: number;
     high: number;
-    recommended?: number;
   };
   pricePerSqm: number;
-  
+
   comments?: string;
-  photos: {
-    url: string;
-    description: string;
-  }[];
 };
 
 export type PropertyAddress = {

@@ -12,6 +12,7 @@ import { EstimationReport } from './EstimationReport';
 import { generateEstimationWord } from './EstimationWord';
 import { generateEstimationFromTemplate } from './EstimationTemplateGenerator';
 import { EstimationTabs } from './EstimationTabs';
+import { saveEstimation } from '../services/estimationService';
 
 interface EstimationFormProps {
   estimation?: Estimation | null;
@@ -134,10 +135,15 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     handleChange('surface', area);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedFormData = { ...formData, status: 'completed' as const };
-    onSave(updatedFormData);
+    try {
+      const updatedFormData = { ...formData, status: 'completed' as const };
+      await saveEstimation(updatedFormData);
+      onSave(updatedFormData);
+    } catch (error) {
+      console.error('Error saving estimation:', error);
+    }
   };
 
   const copyFirstSellerAddress = () => {
@@ -193,7 +199,7 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   const tabs = [
     { id: 1, name: 'Propriétaires', icon: Users },
     { id: 2, name: 'Pièces', icon: LayoutGrid },
-    { id: 3, name: 'Critères', icon: Sliders }, // Changement ici
+    { id: 3, name: 'Critères', icon: Sliders },
     { id: 4, name: 'Évaluation', icon: ClipboardList },
     { id: 5, name: 'Diagnostics', icon: Activity },
     { id: 6, name: 'Générer', icon: Save },

@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "3.1.14",
+    "@supabase/auth-ui-react": "^0.4.7",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "@supabase/supabase-js": "^2.39.7",
     "docx": "^8.5.0",
     "docxtemplater": "^3.42.1",
     "docxtemplater-image-module-free": "^1.0.2",
