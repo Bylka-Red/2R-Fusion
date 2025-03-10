@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '../lib/supabase';
 import { Lock, Mail } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export function AuthForm() {
   const [email, setEmail] = useState('');
@@ -22,7 +20,7 @@ export function AuthForm() {
       });
 
       if (error) throw error;
-      
+
       // La redirection sera gérée automatiquement par le listener d'auth dans App.tsx
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue lors de la connexion');
@@ -50,7 +48,7 @@ export function AuthForm() {
                 Adresse email
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
@@ -61,8 +59,9 @@ export function AuthForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 focus:ring-[#0b8043] focus:border-[#0b8043]"
+                  className="block w-full pl-10 pr-3 focus:ring-[#0b8043] focus:border-[#0b8043]"
                   placeholder="vous@exemple.com"
+                  style={{ paddingLeft: '2.5rem' }} // Ajustement du padding pour éviter le chevauchement
                 />
               </div>
             </div>
@@ -72,7 +71,7 @@ export function AuthForm() {
                 Mot de passe
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
@@ -83,8 +82,9 @@ export function AuthForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 focus:ring-[#0b8043] focus:border-[#0b8043]"
+                  className="block w-full pl-10 pr-3 focus:ring-[#0b8043] focus:border-[#0b8043]"
                   placeholder="••••••••"
+                  style={{ paddingLeft: '3.5rem' }} // Ajustement du padding pour éviter le chevauchement
                 />
               </div>
             </div>
@@ -116,47 +116,6 @@ export function AuthForm() {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Ou continuer avec</span>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <Auth
-                supabaseClient={supabase}
-                appearance={{
-                  theme: ThemeSupa,
-                  variables: {
-                    default: {
-                      colors: {
-                        brand: '#0b8043',
-                        brandAccent: '#097339',
-                      },
-                    },
-                  },
-                }}
-                providers={['google']}
-                localization={{
-                  variables: {
-                    sign_in: {
-                      email_label: 'Adresse email',
-                      password_label: 'Mot de passe',
-                      button_label: 'Se connecter',
-                      loading_button_label: 'Connexion en cours...',
-                      social_provider_text: 'Se connecter avec {{provider}}',
-                      link_text: 'Vous avez déjà un compte ? Connectez-vous',
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>

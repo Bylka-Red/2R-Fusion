@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Minus, ArrowDown, Download, FileText, Users, LayoutGrid, Home, ClipboardList, Activity, Save, Sliders } from 'lucide-react';
 import type { Estimation, PropertyFeature, Comparable, ComparablePhoto, PropertyCriteria, DiagnosticInfo, Owner, Commercial } from '../types';
-import { AddressAutocomplete } from './AddressAutocomplete';
 import { DiagnosticsStep } from './DiagnosticsStep';
 import { EvaluationStep } from './EvaluationStep';
 import EstimationStep1 from './EstimationStep1';
@@ -13,6 +12,7 @@ import { generateEstimationWord } from './EstimationWord';
 import { generateEstimationFromTemplate } from './EstimationTemplateGenerator';
 import { EstimationTabs } from './EstimationTabs';
 import { saveEstimation } from '../services/estimationService';
+import { FloatingNotes } from './FloatingNotes';
 
 interface EstimationFormProps {
   estimation?: Estimation | null;
@@ -23,31 +23,37 @@ interface EstimationFormProps {
 
 export function EstimationForm({ estimation, onSave, onCancel, commercials }: EstimationFormProps) {
   const uniqueId = useRef(crypto.randomUUID()).current;
-
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Estimation>(estimation || {
-    id: uniqueId,
-    createdAt: new Date().toISOString(),
-    status: 'draft',
-    visitDate: new Date().toISOString().split('T')[0],
-    commercial: commercials[0]?.firstName || '',
-    owners: [{
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState(estimation?.notes || '');
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfKey, setPdfKey] = useState(0);
+
+  const [formData, setFormData] = useState<Estimation>({
+    ...estimation,
+    id: estimation?.id || uniqueId,
+    createdAt: estimation?.createdAt || new Date().toISOString(),
+    status: estimation?.status || 'draft',
+    visitDate: estimation?.visitDate || new Date().toISOString().split('T')[0],
+    commercial: estimation?.commercial || commercials[0]?.firstName || '',
+    notes: estimation?.notes || '',
+    owners: estimation?.owners || [{
       firstName: '',
       lastName: '',
       address: '',
       phones: [''],
       emails: ['']
     }],
-    propertyAddress: {
+    propertyAddress: estimation?.propertyAddress || {
       fullAddress: ''
     },
-    propertyType: 'apartment',
-    isInCopropriete: false,
-    surface: 0,
-    rooms: 0,
-    bedrooms: 0,
-    condition: 'good',
-    criteria: {
+    propertyType: estimation?.propertyType || 'apartment',
+    isInCopropriete: estimation?.isInCopropriete || false,
+    surface: estimation?.surface || 0,
+    rooms: estimation?.rooms || 0,
+    bedrooms: estimation?.bedrooms || 0,
+    condition: estimation?.condition || 'good',
+    criteria: estimation?.criteria || {
       hasElevator: false,
       floorNumber: 0,
       totalFloors: 0,
@@ -79,16 +85,16 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
       hasElectricGate: false,
       hasConvertibleAttic: false,
     },
-    diagnosticInfo: {
+    diagnosticInfo: estimation?.diagnosticInfo || {
       propertyType: 'copropriete',
       hasCityGas: false
     },
-    features: [],
-    comparables: [],
-    comparablePhotos: [],
-    forSalePhotos: [],
-    planPhotos: [],
-    marketAnalysis: {
+    features: estimation?.features || [],
+    comparables: estimation?.comparables || [],
+    comparablePhotos: estimation?.comparablePhotos || [],
+    forSalePhotos: estimation?.forSalePhotos || [],
+    planPhotos: estimation?.planPhotos || [],
+    marketAnalysis: estimation?.marketAnalysis || {
       averagePrice: 0,
       priceRange: {
         min: 0,
@@ -97,22 +103,30 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
       marketTrend: 'stable',
       averageSaleTime: 0,
     },
-    estimatedPrice: {
+    estimatedPrice: estimation?.estimatedPrice || {
       low: 0,
       high: 0,
     },
-    pricePerSqm: 0,
-    photos: [],
-    estimationDate: new Date().toISOString().split('T')[0],
-    levels: [{
+    pricePerSqm: estimation?.pricePerSqm || 0,
+    photos: estimation?.photos || [],
+    estimationDate: estimation?.estimationDate || new Date().toISOString().split('T')[0],
+    levels: estimation?.levels || [{
       name: 'Rez-de-chaussée',
       rooms: [],
       type: 'regular'
     }]
   });
 
-  const [pdfError, setPdfError] = useState<string | null>(null);
-  const [pdfKey, setPdfKey] = useState(0);
+  // Effet pour mettre à jour les notes lorsque l'estimation change
+  useEffect(() => {
+    if (estimation) {
+      setNotes(estimation.notes || '');
+      setFormData(prev => ({
+        ...prev,
+        notes: estimation.notes || ''
+      }));
+    }
+  }, [estimation]);
 
   useEffect(() => {
     if (currentStep === 5) {
@@ -124,7 +138,18 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   }, [currentStep]);
 
   const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'notes') {
+      setNotes(value);
+      setFormData(prev => ({
+        ...prev,
+        notes: value
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const handleEstimationDateChange = (newDate: string) => {
@@ -138,17 +163,15 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const updatedFormData = { ...formData, status: 'completed' as const };
+      const updatedFormData = {
+        ...formData,
+        status: 'completed' as const,
+        notes: notes
+      };
       await saveEstimation(updatedFormData);
       onSave(updatedFormData);
     } catch (error) {
       console.error('Error saving estimation:', error);
-    }
-  };
-
-  const copyFirstSellerAddress = () => {
-    if (formData.owners[0]?.address) {
-      handleChange('propertyAddress', { fullAddress: formData.owners[0].address });
     }
   };
 
@@ -158,41 +181,6 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     } catch (error) {
       console.error('Error generating Word document:', error);
       setPdfError('Une erreur est survenue lors de la génération du document Word. Veuillez réessayer.');
-    }
-  };
-
-  const renderPDFDownloadLink = () => {
-    try {
-      return (
-        <PDFDownloadLink
-          key={pdfKey}
-          document={<EstimationReport estimation={formData} />}
-          fileName={`estimation-${formData.id}.pdf`}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#0b8043] hover:bg-[#097339] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043]"
-          onError={(error) => {
-            console.error('PDF generation error:', error);
-            setPdfError('Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.');
-          }}
-        >
-          {({ loading, error }) => (
-            <>
-              <FileText className="h-5 w-5 mr-2" />
-              {loading ? 'Génération...' : error ? 'Erreur' : 'Générer l\'estimation'}
-            </>
-          )}
-        </PDFDownloadLink>
-      );
-    } catch (error) {
-      console.error('PDF render error:', error);
-      return (
-        <button
-          onClick={() => window.location.reload()}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-        >
-          <FileText className="h-5 w-5 mr-2" />
-          Réessayer
-        </button>
-      );
     }
   };
 
@@ -244,7 +232,6 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
           <EstimationStep2
             formData={formData}
             handleChange={handleChange}
-            copyFirstSellerAddress={copyFirstSellerAddress}
             onNext={() => setCurrentStep(4)}
           />
         );
@@ -304,15 +291,42 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <EstimationTabs
-          tabs={tabs}
-          currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
-        />
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setShowNotes(!showNotes)}
+            className={`inline-flex items-center px-3 py-1.5 text-sm rounded-md transition-colors transform scale-80 ${
+              showNotes
+                ? 'bg-[#0b8043] text-white'
+                : 'text-[#0b8043] border border-[#0b8043] hover:bg-green-50'
+            }`}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Notes
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <EstimationTabs
+            tabs={tabs}
+            currentStep={currentStep}
+            setCurrentStep={setCurrentStep}
+          />
+        </div>
 
         <div className="mb-8">
           {renderStepContent()}
         </div>
+
+        {showNotes && (
+          <FloatingNotes
+            key={`notes-${formData.id}`}
+            isOpen={showNotes}
+            onClose={() => setShowNotes(false)}
+            notes={notes}
+            onNotesChange={(newNotes) => handleChange('notes', newNotes)}
+          />
+        )}
 
         <div className="flex justify-between">
           {currentStep > 1 && (

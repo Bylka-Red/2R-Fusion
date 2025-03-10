@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Plus, Settings } from 'lucide-react';
+import { ChevronRight, Plus, Settings, LogOut, FileText } from 'lucide-react';
 import { SellersTab } from './components/SellersTab';
 import { PropertyTab } from './components/PropertyTab';
 import { MandateTab } from './components/MandateTab';
@@ -135,7 +135,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('sellers');
   const [selectedMandate, setSelectedMandate] = useState<Mandate | null>(null);
   const [mandates, setMandates] = useState<Mandate[]>([testMandate]);
-  const [estimations, setEstimations] = useState<Estimation[]>(() => 
+  const [estimations, setEstimations] = useState<Estimation[]>(() =>
     loadFromLocalStorage('estimations', [])
   );
   const [sellers, setSellers] = useState<Seller[]>([{ ...testSeller }]);
@@ -149,9 +149,10 @@ function App() {
   const [occupationStatus, setOccupationStatus] = useState<OccupationStatus>('occupied-by-seller');
   const [dpeStatus, setDpeStatus] = useState<DPEStatus>('completed');
   const [showAmendmentModal, setShowAmendmentModal] = useState(false);
-  const [commercials, setCommercials] = useState<Commercial[]>(() => 
+  const [commercials, setCommercials] = useState<Commercial[]>(() =>
     loadFromLocalStorage('commercials', initialCommercials)
   );
+  const [showNotes, setShowNotes] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -341,7 +342,7 @@ function App() {
               2R FUSION
             </button>
           </div>
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 items-center">
             <button
               onClick={() => {
                 setView('estimations');
@@ -381,6 +382,13 @@ function App() {
               }`}
             >
               <Settings className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="px-4 py-2 rounded-lg text-white hover:bg-[#097339] transition-colors flex items-center gap-2"
+            >
+              <LogOut className="h-5 w-5" />
+              Déconnexion
             </button>
           </div>
         </div>
@@ -516,13 +524,33 @@ function App() {
                   Compromis
                 </button>
               </nav>
-              <button
-                onClick={() => setSelectedMandate(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
-              >
-                Retour à la liste
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setSelectedMandate(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
+                >
+                  Retour à la liste
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNotes(!showNotes)}
+                  className={`inline-flex items-center px-3 py-1.5 text-sm rounded-md transition-colors transform scale-80 ${
+                    showNotes
+                      ? 'bg-[#0b8043] text-white'
+                      : 'text-[#0b8043] border border-[#0b8043] hover:bg-green-50'
+                  }`}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Notes
+                </button>
+              </div>
             </div>
+
+            {showNotes && (
+              <div className="notes-popup bg-white p-4 rounded shadow-md">
+                <p>Vos notes ici...</p>
+              </div>
+            )}
 
             {activeTab === 'sellers' && (
               <SellersTab

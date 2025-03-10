@@ -115,6 +115,7 @@ export type Estimation = {
   estimatedPrice: {
     low: number;
     high: number;
+    recommended?: number;
   };
   pricePerSqm: number;
 

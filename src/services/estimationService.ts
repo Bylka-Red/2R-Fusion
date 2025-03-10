@@ -18,6 +18,21 @@ export async function saveEstimation(estimation: Estimation) {
       return typeof value === 'number' ? value : null;
     };
 
+    // Fonction pour mapper les valeurs de floor_level
+    function mapFloorLevel(floorLevel: string | undefined): number | null {
+      switch (floorLevel) {
+        case 'Rez-de-chaussée':
+          return 0;
+        case 'Premier étage':
+          return 1;
+        case 'Deuxième étage':
+          return 2;
+        // Ajoutez d'autres mappages ici
+        default:
+          return null; // Valeur par défaut si non trouvé
+      }
+    }
+
     // Préparer les données pour l'insertion
     const estimationData = {
       // Basic Information
@@ -28,6 +43,7 @@ export async function saveEstimation(estimation: Estimation) {
       status: estimation.status,
       estimation_date: estimation.estimationDate,
       commercial: estimation.commercial,
+      notes: estimation.notes || '',
 
       // Owner Information - Primary Owner
       owner_title: mapOwnerTitle(estimation.owners[0]?.title),
@@ -83,7 +99,7 @@ export async function saveEstimation(estimation: Estimation) {
       // Nouveaux champs
       floor_number: convertToNumber(estimation.criteria?.floorNumber),
       total_floors: convertToNumber(estimation.criteria?.totalFloors),
-      floor_level: estimation.criteria?.floorLevel || null,
+      floor_level: mapFloorLevel(estimation.criteria?.floorLevel), // Utilisation de la fonction de mappage
       copro_fees: convertToNumber(estimation.criteria?.chargesCopro),
 
       // Property Condition
@@ -148,7 +164,8 @@ export async function saveEstimation(estimation: Estimation) {
       floor_level: estimationData.floor_level,
       copro_fees: estimationData.copro_fees,
       heating_type: estimationData.heating_type,
-      owner_title: estimationData.owner_title // Ajout du log pour owner_title
+      owner_title: estimationData.owner_title,
+      notes: estimationData.notes
     });
 
     // Insérer ou mettre à jour l'estimation

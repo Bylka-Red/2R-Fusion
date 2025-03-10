@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Building2, Home, Calendar, Euro, ArrowRight, Trash2, Edit, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2 } from 'lucide-react';
+import { Plus, Building2, Home, Calendar, ArrowRight, Trash2, Edit, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2, MoreVertical } from 'lucide-react';
 import type { Estimation, EstimationStatus, Commercial } from '../types';
 import { EstimationForm } from './EstimationForm';
 import { EstimationReport } from './EstimationReport';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { generateEstimationWord } from './EstimationWord';
 import { generateEstimationFromTemplate } from './EstimationTemplateGenerator';
 import { SearchBar } from './SearchBar';
 import { supabase } from '../lib/supabase';
@@ -28,25 +27,38 @@ export function EstimationsTab({
   const [filteredEstimations, setFilteredEstimations] = useState<Estimation[]>(estimations);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isLoading, setIsLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+  const menuRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   useEffect(() => {
     loadEstimations();
-  }, []);
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId) {
+        const menuRef = menuRefs.current.get(openMenuId);
+        if (menuRef && !menuRef.contains(event.target as Node)) {
+          setOpenMenuId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    setFilteredEstimations(estimations);
+  }, [estimations]);
 
   const loadEstimations = async () => {
     try {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('User not authenticated');
-        return;
-      }
 
       const { data: estimationsData, error } = await supabase
         .from('estimations')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('estimation_date', { ascending: false });
 
       if (error) {
         console.error('Error loading estimations:', error);
@@ -158,8 +170,10 @@ export function EstimationsTab({
   };
 
   const handleEditEstimation = (estimation: Estimation) => {
+    console.log("Edit button clicked", estimation.id);
     setEditingEstimation(estimation);
     setShowForm(true);
+    setOpenMenuId(null);
   };
 
   const handleSaveEstimation = async (estimation: Estimation) => {
@@ -189,6 +203,7 @@ export function EstimationsTab({
   };
 
   const handleDeleteEstimation = async (id: string) => {
+    console.log("Delete button clicked", id);
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette estimation ?')) {
       try {
         const { error } = await supabase
@@ -204,6 +219,7 @@ export function EstimationsTab({
         setFilteredEstimations(prevFiltered =>
           prevFiltered.filter(est => est.id !== id)
         );
+        setOpenMenuId(null);
       } catch (error) {
         console.error('Error deleting estimation:', error);
       }
@@ -211,38 +227,24 @@ export function EstimationsTab({
   };
 
   const handleWordExport = async (estimation: Estimation) => {
+    console.log("Generate Word button clicked", estimation.id);
     try {
       await generateEstimationFromTemplate(estimation);
+      setOpenMenuId(null);
     } catch (error) {
       console.error('Error generating Word document:', error);
       alert('Une erreur est survenue lors de la génération du document Word. Veuillez réessayer.');
     }
   };
 
-  const getStatusBadgeClass = (status: EstimationStatus) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'converted':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleConvertToMandateClick = (estimation: Estimation) => {
+    console.log("Convert to mandate button clicked", estimation.id);
+    onConvertToMandate(estimation);
+    setOpenMenuId(null);
   };
 
-  const getStatusText = (status: EstimationStatus) => {
-    switch (status) {
-      case 'draft':
-        return 'Brouillon';
-      case 'completed':
-        return 'Terminée';
-      case 'converted':
-        return 'Convertie en mandat';
-      default:
-        return status;
-    }
+  const handleViewReport = (id: string) => {
+    setShowReport(id);
   };
 
   const formatPrice = (price: number) => {
@@ -251,6 +253,48 @@ export function EstimationsTab({
       currency: 'EUR',
       maximumFractionDigits: 0
     }).format(price);
+  };
+
+  const requestSort = (key: string) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedEstimations = () => {
+    const { key, direction } = sortConfig;
+    if (!key) return filteredEstimations;
+
+    return [...filteredEstimations].sort((a, b) => {
+      if (key === 'owners') {
+        return direction === 'ascending'
+          ? a.owners[0].lastName.localeCompare(b.owners[0].lastName)
+          : b.owners[0].lastName.localeCompare(a.owners[0].lastName);
+      }
+      if (key === 'estimationDate') {
+        return direction === 'ascending'
+          ? new Date(a.estimationDate).getTime() - new Date(b.estimationDate).getTime()
+          : new Date(b.estimationDate).getTime() - new Date(a.estimationDate).getTime();
+      }
+      if (key === 'propertyType') {
+        return direction === 'ascending'
+          ? a.propertyType.localeCompare(b.propertyType)
+          : b.propertyType.localeCompare(a.propertyType);
+      }
+      if (key === 'estimatedPrice') {
+        return direction === 'ascending'
+          ? a.estimatedPrice.low - b.estimatedPrice.low
+          : b.estimatedPrice.low - a.estimatedPrice.low;
+      }
+      if (key === 'commercial') {
+        return direction === 'ascending'
+          ? (a.commercial || '').localeCompare(b.commercial || '')
+          : (b.commercial || '').localeCompare(a.commercial || '');
+      }
+      return 0;
+    });
   };
 
   if (isLoading) {
@@ -383,40 +427,60 @@ export function EstimationsTab({
         ) : viewMode === 'list' ? (
           <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
             <table className="min-w-full divide-y divide-gray-300">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                    Propriétaire
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Bien
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Type de bien
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Prix estimé
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Commercial
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Date de visite
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Statut
-                  </th>
-                  <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
+            <thead className="bg-gray-50">
+  <tr>
+    <th
+      className="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6 cursor-pointer"
+      onClick={() => requestSort('owners')}
+    >
+      Propriétaire {sortConfig.key === 'owners' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+    </th>
+    <th className="px-3 py-3.5 text-center text-sm font-bold text-gray-900">
+      Adresse du bien estimé
+    </th>
+    <th
+      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+      onClick={() => requestSort('propertyType')}
+    >
+      Type de bien {sortConfig.key === 'propertyType' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+    </th>
+    <th
+      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+      onClick={() => requestSort('estimatedPrice')}
+    >
+      Prix estimé {sortConfig.key === 'estimatedPrice' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+    </th>
+    <th
+      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+      onClick={() => requestSort('commercial')}
+    >
+      Commercial {sortConfig.key === 'commercial' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+    </th>
+    <th
+      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+      onClick={() => requestSort('estimationDate')}
+    >
+      Date de l'estimation {sortConfig.key === 'estimationDate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+    </th>
+    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+      <span className="sr-only">Actions</span>
+    </th>
+  </tr>
+</thead>
+
+
               <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredEstimations.map((estimation) => (
-                  <tr key={estimation.id}>
+                {sortedEstimations().map((estimation) => (
+                  <tr
+                    key={estimation.id}
+                    onClick={() => handleViewReport(estimation.id)}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
                     <td className="px-3 py-4 text-sm text-gray-500">
                       {estimation.owners && estimation.owners[0] ? (
-                        <strong>{estimation.owners[0].firstName} {estimation.owners[0].lastName}</strong>
+                        <div className="truncate max-w-[185px]">
+                          <strong>{estimation.owners[0].firstName} {estimation.owners[0].lastName}</strong>
+                        </div>
                       ) : (
                         'Non renseigné'
                       )}
@@ -424,12 +488,12 @@ export function EstimationsTab({
                     <td className="py-4 pl-4 pr-3 text-sm sm:pl-6">
                       <div className="flex items-center">
                         {estimation.propertyType === 'house' ? (
-                          <Home className="h-5 w-5 text-orange-600 mr-2" />
+                          <Home className="h-5 w-5 text-orange-600 mr-2 flex-shrink-0" />
                         ) : (
-                          <Building2 className="h-5 w-5 text-blue-600 mr-2" />
+                          <Building2 className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
                         )}
                         <div>
-                          <div className="text-gray-900">
+                          <div className="text-gray-900 truncate max-w-[285px]">
                             {estimation.propertyAddress.fullAddress}
                           </div>
                           <div className="text-gray-500">
@@ -448,14 +512,13 @@ export function EstimationsTab({
                       </span>
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <Euro className="h-4 w-4 text-gray-400 mr-2" />
-                        <strong>
-                          {estimation.estimatedPrice.recommended ?
-                            formatPrice(estimation.estimatedPrice.recommended) :
-                            `${formatPrice(estimation.estimatedPrice.low)} - ${formatPrice(estimation.estimatedPrice.high)}`
-                          }
-                        </strong>
+                      <div className="flex flex-col items-start">
+                        <div className="flex items-center">
+                          <strong>{formatPrice(estimation.estimatedPrice.low)}</strong>
+                        </div>
+                        <div className="flex items-center">
+                          <strong>{formatPrice(estimation.estimatedPrice.high)}</strong>
+                        </div>
                       </div>
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-500">
@@ -467,46 +530,77 @@ export function EstimationsTab({
                         {new Date(estimation.estimationDate).toLocaleDateString('fr-FR')}
                       </div>
                     </td>
-                    <td className="px-3 py-4 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(estimation.status)}`}>
-                        {getStatusText(estimation.status)}
-                      </span>
-                    </td>
                     <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      <div className="flex justify-end gap-2">
-                        {estimation.status !== 'converted' && (
-                          <>
-                            <button
-                              onClick={() => handleEditEstimation(estimation)}
-                              className="text-[#0b8043] hover:text-[#097339]"
-                              title="Modifier"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteEstimation(estimation.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Supprimer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
+                      <div
+                        className="relative z-10"
+                        ref={(el) => {
+                          menuRefs.current.set(estimation.id, el);
+                        }}
+                      >
                         <button
-                          onClick={() => handleWordExport(estimation)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="Générer l'estimation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === estimation.id ? null : estimation.id);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
                         >
-                          <Download className="h-4 w-4" />
+                          <MoreVertical className="h-5 w-5" />
                         </button>
-                        {estimation.status === 'completed' && (
-                          <button
-                            onClick={() => onConvertToMandate(estimation)}
-                            className="text-[#0b8043] hover:text-[#097339] flex items-center"
-                            title="Convertir en mandat"
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
+                        {openMenuId === estimation.id && (
+                          <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div className="py-1">
+                              {estimation.status !== 'converted' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditEstimation(estimation);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Modifier
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteEstimation(estimation.id);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 flex items-center"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Supprimer
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleWordExport(estimation);
+                                }}
+                                className="w-full text-left px-4 py-2 text-blue-600 hover:bg-gray-100 flex items-center"
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Générer l'estimation
+                              </button>
+                              {estimation.status === 'completed' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConvertToMandateClick(estimation);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-[#0b8043] hover:bg-gray-100 flex items-center"
+                                >
+                                  <ArrowRight className="h-4 w-4 mr-2" />
+                                  Convertir en mandat
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -517,50 +611,110 @@ export function EstimationsTab({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredEstimations.map((estimation) => (
+            {sortedEstimations().map((estimation) => (
               <div
                 key={estimation.id}
                 className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden group cursor-pointer"
+                onClick={() => handleViewReport(estimation.id)}
               >
                 <div className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className={`p-2 ${
-                      estimation.propertyType === 'house'
-                        ? 'bg-orange-50 group-hover:bg-orange-100'
-                        : 'bg-blue-50 group-hover:bg-blue-100'
-                      } rounded-lg transition-colors duration-200`}
-                    >
-                      {estimation.propertyType === 'house' ? (
-                        <Home className="h-6 w-6 text-orange-600" />
-                      ) : (
-                        <Building2 className="h-6 w-6 text-blue-600" />
-                      )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4 flex-1 min-w-0">
+                      <div className={`p-2 ${
+                        estimation.propertyType === 'house'
+                          ? 'bg-orange-50 group-hover:bg-orange-100'
+                          : 'bg-blue-50 group-hover:bg-blue-100'
+                        } rounded-lg transition-colors duration-200 flex-shrink-0`}
+                      >
+                        {estimation.propertyType === 'house' ? (
+                          <Home className="h-6 w-6 text-orange-600" />
+                        ) : (
+                          <Building2 className="h-6 w-6 text-blue-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-1 truncate">
+                          {estimation.owners[0]?.firstName} {estimation.owners[0]?.lastName}
+                        </h3>
+                        <div className="flex items-center mb-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            estimation.propertyType === 'house'
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {estimation.propertyType === 'house' ? 'Maison' : 'Appartement'}
+                          </span>
+                          <span className="mx-2 text-gray-400">•</span>
+                          <span className="text-sm text-gray-600">
+                            {estimation.rooms} pièces
+                          </span>
+                          <span className="mx-2 text-gray-400">•</span>
+                          <span className="text-sm text-gray-600">
+                            {estimation.surface} m²
+                          </span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">{estimation.propertyAddress.fullAddress}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                        {estimation.owners[0]?.firstName} {estimation.owners[0]?.lastName}
-                      </h3>
-                      <div className="flex items-center mb-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          estimation.propertyType === 'house'
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {estimation.propertyType === 'house' ? 'Maison' : 'Appartement'}
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">
-                          {estimation.rooms} pièces
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">
-                          {estimation.surface} m²
-                        </span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{estimation.propertyAddress.fullAddress}</span>
-                      </div>
+                    <div
+                      className="relative z-10"
+                      ref={(el) => {
+                        menuRefs.current.set(estimation.id, el);
+                      }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === estimation.id ? null : estimation.id);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                      >
+                        <MoreVertical className="h-5 w-5" />
+                      </button>
+                      {openMenuId === estimation.id && (
+                        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                          <div className="py-1">
+                            {estimation.status !== 'converted' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditEstimation(estimation);
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Modifier
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteEstimation(estimation.id);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 flex items-center"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleConvertToMandateClick(estimation);
+                              }}
+                              className="w-full text-left px-4 py-2 text-[#0b8043] hover:bg-gray-100 flex items-center"
+                            >
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              Convertir en mandat
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -579,44 +733,8 @@ export function EstimationsTab({
                       </span>
                     </div>
                     <div className="mt-4 flex justify-between items-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(estimation.status)}`}>
-                        {getStatusText(estimation.status)}
-                      </span>
-                      <div className="flex gap-2">
-                        {estimation.status !== 'converted' && (
-                          <>
-                            <button
-                              onClick={() => handleEditEstimation(estimation)}
-                              className="text-[#0b8043] hover:text-[#097339]"
-                              title="Modifier"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteEstimation(estimation.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Supprimer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => handleWordExport(estimation)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="Générer l'estimation"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                        {estimation.status === 'completed' && (
-                          <button
-                            onClick={() => onConvertToMandate(estimation)}
-                            className="text-[#0b8043] hover:text-[#097339] flex items-center"
-                            title="Convertir en mandat"
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                        )}
+                      <div className="text-lg font-semibold text-gray-900">
+                        {formatPrice(estimation.estimatedPrice.low)} - {formatPrice(estimation.estimatedPrice.high)}
                       </div>
                     </div>
                   </div>
