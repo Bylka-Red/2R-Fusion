@@ -6,16 +6,20 @@ import type { PropertyCriteria, Estimation } from '../types';
 interface EstimationStep2Props {
   formData: Estimation;
   handleChange: (field: string, value: any) => void;
-  copyFirstSellerAddress: () => void;
   onNext: () => void;
 }
 
 const EstimationStep2: React.FC<EstimationStep2Props> = ({
   formData,
   handleChange,
-  copyFirstSellerAddress,
   onNext,
 }) => {
+  const copyFirstOwnerAddress = () => {
+    if (formData.owners && formData.owners.length > 0) {
+      handleChange('propertyAddress', { fullAddress: formData.owners[0].address });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -83,7 +87,7 @@ const EstimationStep2: React.FC<EstimationStep2Props> = ({
             </div>
             <button
               type="button"
-              onClick={copyFirstSellerAddress}
+              onClick={copyFirstOwnerAddress}
               className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200"
               title="Copier l'adresse du propriétaire"
             >

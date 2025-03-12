@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Building2, Home, Calendar, ArrowRight, Trash2, Edit, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2, MoreVertical } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Building2, Home, Calendar, ArrowRight, Trash2, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2 } from 'lucide-react';
 import type { Estimation, EstimationStatus, Commercial } from '../types';
 import { EstimationForm } from './EstimationForm';
 import { EstimationReport } from './EstimationReport';
@@ -7,6 +7,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { generateEstimationFromTemplate } from './EstimationTemplateGenerator';
 import { SearchBar } from './SearchBar';
 import { supabase } from '../lib/supabase';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface EstimationsTabProps {
   estimations: Estimation[];
@@ -27,25 +28,15 @@ export function EstimationsTab({
   const [filteredEstimations, setFilteredEstimations] = useState<Estimation[]>(estimations);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isLoading, setIsLoading] = useState(true);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
-  const menuRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [estimationToDelete, setEstimationToDelete] = useState<Estimation | null>(null);
+  const [estimationToConvert, setEstimationToConvert] = useState<Estimation | null>(null);
+  const [dialogType, setDialogType] = useState<'delete' | 'convert' | null>(null);
 
   useEffect(() => {
     loadEstimations();
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (openMenuId) {
-        const menuRef = menuRefs.current.get(openMenuId);
-        if (menuRef && !menuRef.contains(event.target as Node)) {
-          setOpenMenuId(null);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuId]);
+  }, []);
 
   useEffect(() => {
     setFilteredEstimations(estimations);
@@ -71,6 +62,7 @@ export function EstimationsTab({
         status: dbEstimation.status,
         estimationDate: dbEstimation.estimation_date,
         commercial: dbEstimation.commercial || undefined,
+        notes: dbEstimation.notes || '',
         owners: [{
           firstName: dbEstimation.owner_first_name || '',
           lastName: dbEstimation.owner_last_name || '',
@@ -169,13 +161,6 @@ export function EstimationsTab({
     setShowForm(true);
   };
 
-  const handleEditEstimation = (estimation: Estimation) => {
-    console.log("Edit button clicked", estimation.id);
-    setEditingEstimation(estimation);
-    setShowForm(true);
-    setOpenMenuId(null);
-  };
-
   const handleSaveEstimation = async (estimation: Estimation) => {
     try {
       const updatedEstimation = {
@@ -202,49 +187,65 @@ export function EstimationsTab({
     }
   };
 
-  const handleDeleteEstimation = async (id: string) => {
-    console.log("Delete button clicked", id);
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette estimation ?')) {
+  const handleDeleteEstimation = (estimation: Estimation, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEstimationToDelete(estimation);
+    setDialogType('delete');
+    setShowConfirmationDialog(true);
+  };
+
+  const confirmDeleteEstimation = async () => {
+    if (estimationToDelete) {
       try {
         const { error } = await supabase
           .from('estimations')
           .delete()
-          .eq('id', id);
+          .eq('id', estimationToDelete.id);
 
         if (error) throw error;
 
         setEstimations(prevEstimations =>
-          prevEstimations.filter(est => est.id !== id)
+          prevEstimations.filter(est => est.id !== estimationToDelete.id)
         );
         setFilteredEstimations(prevFiltered =>
-          prevFiltered.filter(est => est.id !== id)
+          prevFiltered.filter(est => est.id !== estimationToDelete.id)
         );
-        setOpenMenuId(null);
       } catch (error) {
         console.error('Error deleting estimation:', error);
+      } finally {
+        setShowConfirmationDialog(false);
+        setEstimationToDelete(null);
       }
     }
   };
 
+  const handleConvertToMandate = (estimation: Estimation, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEstimationToConvert(estimation);
+    setDialogType('convert');
+    setShowConfirmationDialog(true);
+  };
+
+  const confirmConvertToMandate = () => {
+    if (estimationToConvert) {
+      onConvertToMandate(estimationToConvert);
+      setShowConfirmationDialog(false);
+      setEstimationToConvert(null);
+    }
+  };
+
   const handleWordExport = async (estimation: Estimation) => {
-    console.log("Generate Word button clicked", estimation.id);
     try {
       await generateEstimationFromTemplate(estimation);
-      setOpenMenuId(null);
     } catch (error) {
       console.error('Error generating Word document:', error);
       alert('Une erreur est survenue lors de la génération du document Word. Veuillez réessayer.');
     }
   };
 
-  const handleConvertToMandateClick = (estimation: Estimation) => {
-    console.log("Convert to mandate button clicked", estimation.id);
-    onConvertToMandate(estimation);
-    setOpenMenuId(null);
-  };
-
-  const handleViewReport = (id: string) => {
-    setShowReport(id);
+  const handleViewReport = (estimation: Estimation) => {
+    setEditingEstimation(estimation);
+    setShowForm(true);
   };
 
   const formatPrice = (price: number) => {
@@ -350,7 +351,7 @@ export function EstimationsTab({
               onClick={() => handleWordExport(estimation)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-5 w-5 mr-2" />
               Générer l'estimation
             </button>
           </div>
@@ -427,53 +428,51 @@ export function EstimationsTab({
         ) : viewMode === 'list' ? (
           <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
             <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
-  <tr>
-    <th
-      className="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6 cursor-pointer"
-      onClick={() => requestSort('owners')}
-    >
-      Propriétaire {sortConfig.key === 'owners' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-    </th>
-    <th className="px-3 py-3.5 text-center text-sm font-bold text-gray-900">
-      Adresse du bien estimé
-    </th>
-    <th
-      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
-      onClick={() => requestSort('propertyType')}
-    >
-      Type de bien {sortConfig.key === 'propertyType' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-    </th>
-    <th
-      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
-      onClick={() => requestSort('estimatedPrice')}
-    >
-      Prix estimé {sortConfig.key === 'estimatedPrice' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-    </th>
-    <th
-      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
-      onClick={() => requestSort('commercial')}
-    >
-      Commercial {sortConfig.key === 'commercial' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-    </th>
-    <th
-      className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
-      onClick={() => requestSort('estimationDate')}
-    >
-      Date de l'estimation {sortConfig.key === 'estimationDate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-    </th>
-    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-      <span className="sr-only">Actions</span>
-    </th>
-  </tr>
-</thead>
-
-
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    className="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6 cursor-pointer"
+                    onClick={() => requestSort('owners')}
+                  >
+                    Propriétaire {sortConfig.key === 'owners' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-3 py-3.5 text-center text-sm font-bold text-gray-900">
+                    Adresse du bien estimé
+                  </th>
+                  <th
+                    className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+                    onClick={() => requestSort('propertyType')}
+                  >
+                    Type de bien {sortConfig.key === 'propertyType' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </th>
+                  <th
+                    className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+                    onClick={() => requestSort('estimatedPrice')}
+                  >
+                    Prix estimé {sortConfig.key === 'estimatedPrice' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </th>
+                  <th
+                    className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+                    onClick={() => requestSort('commercial')}
+                  >
+                    Commercial {sortConfig.key === 'commercial' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </th>
+                  <th
+                    className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 cursor-pointer"
+                    onClick={() => requestSort('estimationDate')}
+                  >
+                    Date de l'estimation {sortConfig.key === 'estimationDate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </th>
+                  <th className="relative py-3.5 pl-3 pr-4 sm:pr-0 w-24">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {sortedEstimations().map((estimation) => (
                   <tr
                     key={estimation.id}
-                    onClick={() => handleViewReport(estimation.id)}
+                    onClick={() => handleViewReport(estimation)}
                     className="cursor-pointer hover:bg-gray-50"
                   >
                     <td className="px-3 py-4 text-sm text-gray-500">
@@ -530,78 +529,40 @@ export function EstimationsTab({
                         {new Date(estimation.estimationDate).toLocaleDateString('fr-FR')}
                       </div>
                     </td>
-                    <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      <div
-                        className="relative z-10"
-                        ref={(el) => {
-                          menuRefs.current.set(estimation.id, el);
-                        }}
-                      >
+                    <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                      <div className="flex justify-end gap-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenMenuId(openMenuId === estimation.id ? null : estimation.id);
+                            handleWordExport(estimation);
                           }}
-                          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Générer l'estimation"
                         >
-                          <MoreVertical className="h-5 w-5" />
+                          <FileText style={{ width: '16px', height: '16px' }} />
                         </button>
-                        {openMenuId === estimation.id && (
-                          <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                            <div className="py-1">
-                              {estimation.status !== 'converted' && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditEstimation(estimation);
-                                    }}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
-                                  >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Modifier
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteEstimation(estimation.id);
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 flex items-center"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Supprimer
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleWordExport(estimation);
-                                }}
-                                className="w-full text-left px-4 py-2 text-blue-600 hover:bg-gray-100 flex items-center"
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Générer l'estimation
-                              </button>
-                              {estimation.status === 'completed' && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleConvertToMandateClick(estimation);
-                                  }}
-                                  className="w-full text-left px-4 py-2 text-[#0b8043] hover:bg-gray-100 flex items-center"
-                                >
-                                  <ArrowRight className="h-4 w-4 mr-2" />
-                                  Convertir en mandat
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                        {estimation.status !== 'converted' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteEstimation(estimation, e);
+                            }}
+                            className="text-red-600 hover:text-red-800"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConvertToMandate(estimation, e);
+                          }}
+                          className="text-[#0b8043] hover:text-[#097339]"
+                          title="Convertir en mandat"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -615,7 +576,7 @@ export function EstimationsTab({
               <div
                 key={estimation.id}
                 className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden group cursor-pointer"
-                onClick={() => handleViewReport(estimation.id)}
+                onClick={() => handleViewReport(estimation)}
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between">
@@ -659,63 +620,6 @@ export function EstimationsTab({
                         </div>
                       </div>
                     </div>
-                    <div
-                      className="relative z-10"
-                      ref={(el) => {
-                        menuRefs.current.set(estimation.id, el);
-                      }}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === estimation.id ? null : estimation.id);
-                        }}
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-                      >
-                        <MoreVertical className="h-5 w-5" />
-                      </button>
-                      {openMenuId === estimation.id && (
-                        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                          <div className="py-1">
-                            {estimation.status !== 'converted' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditEstimation(estimation);
-                                  }}
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Modifier
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteEstimation(estimation.id);
-                                  }}
-                                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 flex items-center"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Supprimer
-                                </button>
-                              </>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleConvertToMandateClick(estimation);
-                              }}
-                              className="w-full text-left px-4 py-2 text-[#0b8043] hover:bg-gray-100 flex items-center"
-                            >
-                              <ArrowRight className="h-4 w-4 mr-2" />
-                              Convertir en mandat
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-100">
@@ -734,7 +638,41 @@ export function EstimationsTab({
                     </div>
                     <div className="mt-4 flex justify-between items-center">
                       <div className="text-lg font-semibold text-gray-900">
-                        {formatPrice(estimation.estimatedPrice.low)} - {formatPrice(estimation.estimatedPrice.high)}
+                        {formatPrice(estimation.estimatedPrice.low)} {formatPrice(estimation.estimatedPrice.high)}
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleWordExport(estimation);
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Générer l'estimation"
+                        >
+                          <FileText className="h-5 w-5" />
+                        </button>
+                        {estimation.status !== 'converted' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteEstimation(estimation, e);
+                            }}
+                            className="text-red-600 hover:text-red-800"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConvertToMandate(estimation, e);
+                          }}
+                          className="text-[#0b8043] hover:text-[#097339]"
+                          title="Convertir en mandat"
+                        >
+                          <ArrowRight className="h-5 w-5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -744,6 +682,19 @@ export function EstimationsTab({
           </div>
         )}
       </div>
+      {showConfirmationDialog && (
+        <ConfirmDialog
+          isOpen={showConfirmationDialog}
+          onClose={() => setShowConfirmationDialog(false)}
+          onConfirm={dialogType === 'delete' ? confirmDeleteEstimation : confirmConvertToMandate}
+          title={
+            dialogType === 'delete'
+              ? `Êtes-vous sûr de vouloir supprimer définitivement l'estimation de ${estimationToDelete?.owners[0].lastName} ?`
+              : `Êtes-vous sûr de vouloir convertir l'estimation de ${estimationToConvert?.owners[0].lastName} en mandat ?`
+          }
+          type={dialogType}
+        />
+      )}
     </div>
   );
 }
