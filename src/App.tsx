@@ -12,6 +12,8 @@ import { CompromiseTab } from './components/CompromiseTab';
 import { RoomAreaInput } from './components/RoomAreaInput';
 import { AuthForm } from './components/AuthForm';
 import { supabase } from './lib/supabase';
+import { DashboardIcon } from './components/DashboardIcon';
+import { DashboardModal } from './components/DashboardModal';
 import type { Seller, PropertyLot, PropertyAddress, CadastralSection, Mandate, OccupationStatus, DPEStatus, Estimation, Commercial } from './types';
 
 const testSeller: Seller = {
@@ -153,6 +155,7 @@ function App() {
     loadFromLocalStorage('commercials', initialCommercials)
   );
   const [showNotes, setShowNotes] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -343,6 +346,7 @@ function App() {
             </button>
           </div>
           <div className="flex space-x-4 items-center">
+            <DashboardIcon onClick={() => setShowDashboard(true)} />
             <button
               onClick={() => {
                 setView('estimations');
@@ -772,6 +776,12 @@ function App() {
           </>
         )}
       </main>
+
+      <DashboardModal
+        isOpen={showDashboard}
+        onClose={() => setShowDashboard(false)}
+        estimations={estimations}
+      />
     </div>
   );
 }

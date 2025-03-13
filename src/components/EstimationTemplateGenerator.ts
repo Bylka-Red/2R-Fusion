@@ -313,13 +313,35 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             .filter(f => f.type === 'saleDate')
             .map(f => calculateDaysSince(f.description));
 
+        // Convertir le titre en format français
+        const getTitreFrancais = (title: string | undefined) => {
+            console.log("Titre du propriétaire avant traduction:", title); // Log pour le débogage
+            switch (title) {
+                case 'Mr':
+                case 'Monsieur': // Ajout pour gérer le cas "Monsieur"
+                    return 'Monsieur';
+                case 'Mme':
+                case 'Madame': // Ajout pour gérer le cas "Madame"
+                    return 'Madame';
+                case 'Mr and Mrs':
+                case 'Monsieur et Madame': // Ajout pour gérer le cas "Monsieur et Madame"
+                    return 'Monsieur et Madame';
+                default:
+                    console.warn("Titre inconnu:", title); // Log pour les titres inconnus
+                    return 'Monsieur'; // Valeur par défaut, mais vous pouvez la changer ou lever une erreur
+            }
+        };
+        
+
         // Préparer les données pour remplacer les balises
-        const titreProprietaire = estimation.owners[0]?.title || '';
+        const titreProprietaire = getTitreFrancais(estimation.owners[0]?.title);
+        console.log("Titre du propriétaire formaté:", titreProprietaire); // Debug
+
         const data = {
             titreProprietaire: titreProprietaire,
             prenomProprietaire: estimation.owners[0]?.firstName || '',
             nomProprietaire: estimation.owners[0]?.lastName || '',
-            adresseProprietaire: estimation.owners[0]?.address || '',
+            adresseProprietaire: estimation.owners[0]?.address?.fullAddress || '',
             telephoneProprietaire: estimation.owners[0]?.phones?.[0] || '',
             emailProprietaire: estimation.owners[0]?.emails?.[0] || '',
             adresseBien: estimation.propertyAddress?.fullAddress || '',
@@ -414,7 +436,7 @@ export async function generateEstimationFromTemplate(estimation: Estimation): Pr
             enVenteDepuis2: saleDates[1] ? `En vente depuis ${saleDates[1]}` : 'Bien similaire N°2',
             enVenteDepuis3: saleDates[2] ? `En vente depuis ${saleDates[2]}` : 'Bien similaire N°3',
             enVenteDepuis4: saleDates[3] ? `En vente depuis ${saleDates[3]}` : 'Bien similaire N°4',
-};
+        };
 
         console.log("Valeur de etatGeneral avant rendu :", data.etatGeneral);
         console.log("Données complètes passées à Docxtemplater :", data);

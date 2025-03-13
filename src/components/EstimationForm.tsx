@@ -11,7 +11,7 @@ import { EstimationReport } from './EstimationReport';
 import { generateEstimationWord } from './EstimationWord';
 import { generateEstimationFromTemplate } from './EstimationTemplateGenerator';
 import { EstimationTabs } from './EstimationTabs';
-import { saveEstimation } from '../services/estimationService';
+import { saveEstimation, getEstimation } from '../services/estimationService';
 import { FloatingNotes } from './FloatingNotes';
 
 interface EstimationFormProps {
@@ -127,6 +127,21 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
       }));
     }
   }, [estimation]);
+
+  // Effet pour récupérer les données de l'estimation
+  useEffect(() => {
+    const fetchEstimationData = async () => {
+      if (estimation?.id) {
+        const fetchedEstimation = await getEstimation(estimation.id);
+        if (fetchedEstimation) {
+          setFormData(fetchedEstimation);
+          console.log('Fetched owners:', fetchedEstimation.owners); // Log pour vérifier les propriétaires récupérés
+        }
+      }
+    };
+
+    fetchEstimationData();
+  }, [estimation?.id]);
 
   useEffect(() => {
     if (currentStep === 5) {

@@ -18,17 +18,20 @@ export function RoomAreaInput({ levels, onChange, onLivingAreaChange }: RoomArea
   const hasOutbuilding = levels.some(level => level.type === 'outbuilding');
 
   const calculateAreas = () => {
-    const livingArea = levels
+    const livingArea = Number(levels
       .filter(level => level.type !== 'basement' && level.type !== 'outbuilding')
-      .reduce((total, level) => total + level.rooms.reduce((levelTotal, room) => levelTotal + room.area, 0), 0);
+      .reduce((total, level) => total + level.rooms.reduce((levelTotal, room) => levelTotal + room.area, 0), 0)
+      .toFixed(2));
 
-    const basementArea = levels
+    const basementArea = Number(levels
       .filter(level => level.type === 'basement')
-      .reduce((total, level) => total + level.rooms.reduce((levelTotal, room) => levelTotal + room.area, 0), 0);
+      .reduce((total, level) => total + level.rooms.reduce((levelTotal, room) => levelTotal + room.area, 0), 0)
+      .toFixed(2));
 
-    const outbuildingArea = levels
+    const outbuildingArea = Number(levels
       .filter(level => level.type === 'outbuilding')
-      .reduce((total, level) => total + level.rooms.reduce((levelTotal, room) => levelTotal + room.area, 0), 0);
+      .reduce((total, level) => total + level.rooms.reduce((levelTotal, room) => levelTotal + room.area, 0), 0)
+      .toFixed(2));
 
     return { livingArea, basementArea, outbuildingArea };
   };
@@ -144,14 +147,14 @@ export function RoomAreaInput({ levels, onChange, onLivingAreaChange }: RoomArea
         <div className="bg-green-50 rounded-lg p-4 flex-1">
           <div className="flex items-center justify-between">
             <span className="text-green-700 font-medium">Surface habitable</span>
-            <span className="text-green-700 font-bold">{livingArea} m²</span>
+            <span className="text-green-700 font-bold">{livingArea.toFixed(2)} m²</span>
           </div>
         </div>
         {hasBasement && (
           <div className="bg-blue-50 rounded-lg p-4 flex-1">
             <div className="flex items-center justify-between">
               <span className="text-blue-700 font-medium">Surface sous-sol</span>
-              <span className="text-blue-700 font-bold">{basementArea} m²</span>
+              <span className="text-blue-700 font-bold">{basementArea.toFixed(2)} m²</span>
             </div>
           </div>
         )}
@@ -159,7 +162,7 @@ export function RoomAreaInput({ levels, onChange, onLivingAreaChange }: RoomArea
           <div className="bg-purple-50 rounded-lg p-4 flex-1">
             <div className="flex items-center justify-between">
               <span className="text-purple-700 font-medium">Surface dépendances</span>
-              <span className="text-purple-700 font-bold">{outbuildingArea} m²</span>
+              <span className="text-purple-700 font-bold">{outbuildingArea.toFixed(2)} m²</span>
             </div>
           </div>
         )}

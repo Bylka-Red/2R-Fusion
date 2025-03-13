@@ -1,37 +1,87 @@
 import { supabase } from '../lib/supabase';
 import type { Estimation } from '../types';
 
+// Fonction pour mapper les valeurs de titre depuis la base de données
+const mapTitleFromDb = (title: string | undefined): string => {
+  if (!title) return 'Monsieur'; // Valeur par défaut
+
+  switch (title) {
+    case 'Mr':
+      return 'Monsieur';
+    case 'Mrs':
+      return 'Madame';
+    case 'Mr and Mrs':
+      return 'Monsieur et Madame';
+    default:
+      return title; // Retourner le titre tel quel s'il ne correspond à aucun cas
+  }
+};
+
+// Fonction pour mapper les valeurs de titre vers la base de données
+const mapTitleToDb = (title: string | undefined): string | null => {
+  if (!title) return null;
+
+  switch (title) {
+    case 'Monsieur':
+      return 'Mr';
+    case 'Madame':
+      return 'Mrs';
+    case 'Monsieur et Madame':
+      return 'Mr and Mrs';
+    default:
+      return title; // Retourner le titre tel quel s'il ne correspond à aucun cas
+  }
+};
+
+// Fonction pour mapper les valeurs de floor_level
+const mapFloorLevel = (floorLevel: string | undefined): number | null => {
+  switch (floorLevel) {
+    case 'Rez-de-chaussée':
+      return 0;
+    case 'Premier étage':
+      return 1;
+    case 'Deuxième étage':
+      return 2;
+    default:
+      return null;
+  }
+};
+
+// Fonction pour convertir les valeurs numériques en nombres
+const convertToNumber = (value: any): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'string') {
+    const num = parseFloat(value.replace(/[^0-9.-]/g, ''));
+    return isNaN(num) ? null : num;
+  }
+  return typeof value === 'number' ? value : null;
+};
+
+// Fonction pour mapper les valeurs de heating_type
+const mapHeatingType = (heatingSystem: string | undefined): string => {
+  switch (heatingSystem) {
+    case 'electric':
+      return 'Électrique';
+    case 'individual-gas':
+      return 'Gaz individuel';
+    case 'collective-gas':
+      return 'Gaz collectif';
+    case 'heat-pump':
+      return 'Pompe à chaleur';
+    case 'fuel':
+      return 'Fuel';
+    case 'collective-geothermal':
+      return 'Géothermique collectif';
+    default:
+      return 'Gaz individuel'; // Valeur par défaut
+  }
+};
+
 export async function saveEstimation(estimation: Estimation) {
   try {
     // Récupérer l'utilisateur courant
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-
-    // Convertir les valeurs numériques en nombres
-    const convertToNumber = (value: any): number | null => {
-      if (value === null || value === undefined || value === '') return null;
-      if (typeof value === 'string') {
-        // Si la valeur est une chaîne non numérique, retourner null
-        const num = parseFloat(value.replace(/[^0-9.-]/g, ''));
-        return isNaN(num) ? null : num;
-      }
-      return typeof value === 'number' ? value : null;
-    };
-
-    // Fonction pour mapper les valeurs de floor_level
-    function mapFloorLevel(floorLevel: string | undefined): number | null {
-      switch (floorLevel) {
-        case 'Rez-de-chaussée':
-          return 0;
-        case 'Premier étage':
-          return 1;
-        case 'Deuxième étage':
-          return 2;
-        // Ajoutez d'autres mappages ici
-        default:
-          return null; // Valeur par défaut si non trouvé
-      }
-    }
 
     // Préparer les données pour l'insertion
     const estimationData = {
@@ -46,7 +96,7 @@ export async function saveEstimation(estimation: Estimation) {
       notes: estimation.notes || '',
 
       // Owner Information - Primary Owner
-      owner_title: mapOwnerTitle(estimation.owners[0]?.title),
+      owner_title: mapTitleToDb(estimation.owners[0]?.title),
       owner_first_name: estimation.owners[0]?.firstName || '',
       owner_last_name: estimation.owners[0]?.lastName || '',
       owner_birth_date: estimation.owners[0]?.birthDate || null,
@@ -99,7 +149,7 @@ export async function saveEstimation(estimation: Estimation) {
       // Nouveaux champs
       floor_number: convertToNumber(estimation.criteria?.floorNumber),
       total_floors: convertToNumber(estimation.criteria?.totalFloors),
-      floor_level: mapFloorLevel(estimation.criteria?.floorLevel), // Utilisation de la fonction de mappage
+      floor_level: mapFloorLevel(estimation.criteria?.floorLevel),
       copro_fees: convertToNumber(estimation.criteria?.chargesCopro),
 
       // Property Condition
@@ -157,17 +207,6 @@ export async function saveEstimation(estimation: Estimation) {
       has_city_gas: estimation.diagnosticInfo?.hasCityGas ?? false,
     };
 
-    // Log des valeurs critiques pour le débogage
-    console.log('Données envoyées à Supabase:', {
-      floor_number: estimationData.floor_number,
-      total_floors: estimationData.total_floors,
-      floor_level: estimationData.floor_level,
-      copro_fees: estimationData.copro_fees,
-      heating_type: estimationData.heating_type,
-      owner_title: estimationData.owner_title,
-      notes: estimationData.notes
-    });
-
     // Insérer ou mettre à jour l'estimation
     const { data, error } = await supabase
       .from('estimations')
@@ -187,36 +226,139 @@ export async function saveEstimation(estimation: Estimation) {
   }
 }
 
-// Fonction pour mapper les valeurs de heating_type
-function mapHeatingType(heatingSystem: string | undefined): string {
-  switch (heatingSystem) {
-    case 'electric':
-      return 'Électrique';
-    case 'individual-gas':
-      return 'Gaz individuel';
-    case 'collective-gas':
-      return 'Gaz collectif';
-    case 'heat-pump':
-      return 'Pompe à chaleur';
-    case 'fuel':
-      return 'Fuel';
-    case 'collective-geothermal':
-      return 'Géothermique collectif';
-    default:
-      return 'Gaz individuel'; // Valeur par défaut
-  }
-}
+export async function getEstimation(id: string) {
+  try {
+    const { data, error } = await supabase
+      .from('estimations')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-// Fonction pour mapper les valeurs de owner_title
-function mapOwnerTitle(title: string | undefined): string {
-  switch (title) {
-    case 'Monsieur':
-      return 'Mr';
-    case 'Madame':
-      return 'Mrs';
-    case 'Monsieur et Madame':
-      return 'Mr and Mrs';
-    default:
-      return 'Mr'; // Valeur par défaut
+    if (error) {
+      console.error('Error fetching estimation:', error);
+      throw error;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Transformer les données de la base de données en modèle d'application
+    return {
+      ...data,
+      owners: [
+        {
+          title: mapTitleFromDb(data.owner_title),
+          firstName: data.owner_first_name || '',
+          lastName: data.owner_last_name || '',
+          address: {
+            fullAddress: data.owner_address || ''
+          },
+          phones: [data.owner_phone || ''],
+          emails: [data.owner_email || ''],
+          birthDate: data.owner_birth_date,
+          birthPlace: data.owner_birth_place,
+          birthPostalCode: data.owner_birth_postal_code,
+          nationality: data.owner_nationality,
+          profession: data.owner_profession,
+          hasFrenchTaxResidence: data.owner_has_french_tax_residence,
+          maritalStatus: data.owner_marital_status,
+          customMaritalStatus: data.owner_custom_marital_status,
+          marriageDetails: data.marriage_date ? {
+            date: data.marriage_date,
+            place: data.marriage_place,
+            regime: data.marriage_regime
+          } : undefined,
+          pacsDetails: data.pacs_date ? {
+            date: data.pacs_date,
+            place: data.pacs_place,
+            reference: data.pacs_reference,
+            partnerName: data.pacs_partner_name
+          } : undefined,
+          divorceDetails: data.ex_spouse_name ? {
+            exSpouseName: data.ex_spouse_name
+          } : undefined,
+          widowDetails: data.deceased_spouse_name ? {
+            deceasedSpouseName: data.deceased_spouse_name
+          } : undefined,
+          propertyType: data.property_family_type
+        }
+      ],
+      propertyAddress: {
+        fullAddress: data.property_address || ''
+      },
+      propertyType: data.property_type || 'apartment',
+      isInCopropriete: data.is_in_copropriete ?? false,
+      commercial: data.commercial || '',
+      estimationDate: data.estimation_date || '',
+      surface: data.total_surface || 0,
+      rooms: data.total_rooms || 0,
+      bedrooms: data.bedrooms || 0,
+      condition: data.condition || 'good',
+      criteria: {
+        hasElevator: data.has_elevator || false,
+        floorNumber: data.floor_number || 0,
+        totalFloors: data.total_floors || 0,
+        heatingType: data.heating_type || 'individual',
+        heatingEnergy: data.heating_energy || 'gas',
+        hasCellar: data.has_cellar || false,
+        hasParking: data.has_parking || false,
+        hasBalcony: data.has_balcony || false,
+        hasTerrace: data.has_terrace || false,
+        hasGarden: data.has_garden || false,
+        exposure: data.exposure || 'south',
+        livingRoomSurface: data.living_room_surface || 0,
+        bathrooms: data.bathrooms || 0,
+        showerRooms: data.shower_rooms || 0,
+        kitchenType: data.kitchen_type || 'open-equipped',
+        heatingSystem: data.heating_system || 'individual-gas',
+        basement: data.basement_type || 'none',
+        landSurface: data.land_surface || 0,
+        constructionYear: data.construction_year,
+        propertyTax: data.property_tax || 0,
+        hasGas: data.has_gas || false,
+        hasGarage: data.has_garage || false,
+        hasFireplace: data.has_fireplace || false,
+        hasWoodStove: data.has_wood_stove || false,
+        hasElectricShutters: data.has_electric_shutters || false,
+        hasElectricGate: data.has_electric_gate || false,
+        hasConvertibleAttic: data.has_convertible_attic || false,
+        chargesCopro: data.copro_fees || 0,
+        floorLevel: data.floor_level
+      },
+      diagnosticInfo: {
+        propertyType: data.diagnostic_property_type || 'copropriete',
+        hasCityGas: data.has_city_gas || false
+      },
+      features: [
+        ...(data.strengths || []).map(strength => ({
+          type: 'strength' as const,
+          description: strength
+        })),
+        ...(data.weaknesses || []).map(weakness => ({
+          type: 'weakness' as const,
+          description: weakness
+        }))
+      ],
+      marketAnalysis: {
+        averagePrice: data.market_average_price || 0,
+        priceRange: {
+          min: data.market_price_range_min || 0,
+          max: data.market_price_range_max || 0
+        },
+        marketTrend: data.market_trend || 'stable',
+        averageSaleTime: data.market_average_sale_time || 0
+      },
+      estimatedPrice: {
+        low: data.estimated_price_low || 0,
+        high: data.estimated_price_high || 0
+      },
+      pricePerSqm: data.price_per_sqm || 0,
+      levels: data.levels || [],
+      comments: data.comments || ''
+    };
+  } catch (error) {
+    console.error('Error getting estimation:', error);
+    throw error;
   }
 }

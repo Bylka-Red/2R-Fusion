@@ -8,6 +8,7 @@ import { generateEstimationFromTemplate } from './EstimationTemplateGenerator';
 import { SearchBar } from './SearchBar';
 import { supabase } from '../lib/supabase';
 import { ConfirmDialog } from './ConfirmDialog';
+import { getEstimation } from '../services/estimationService';
 
 interface EstimationsTabProps {
   estimations: Estimation[];
@@ -68,7 +69,8 @@ export function EstimationsTab({
           lastName: dbEstimation.owner_last_name || '',
           address: dbEstimation.owner_address || '',
           phones: [dbEstimation.owner_phone || ''],
-          emails: [dbEstimation.owner_email || '']
+          emails: [dbEstimation.owner_email || ''],
+          title: dbEstimation.owner_title || 'Mr',
         }],
         propertyAddress: {
           fullAddress: dbEstimation.property_address
@@ -234,9 +236,18 @@ export function EstimationsTab({
     }
   };
 
-  const handleWordExport = async (estimation: Estimation) => {
+  const handleWordExport = async (estimation: Estimation, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
     try {
-      await generateEstimationFromTemplate(estimation);
+      // Récupérer l'estimation complète depuis la base de données
+      const fullEstimation = await getEstimation(estimation.id);
+      if (fullEstimation) {
+        await generateEstimationFromTemplate(fullEstimation);
+      } else {
+        throw new Error('Estimation not found');
+      }
     } catch (error) {
       console.error('Error generating Word document:', error);
       alert('Une erreur est survenue lors de la génération du document Word. Veuillez réessayer.');
@@ -534,12 +545,12 @@ export function EstimationsTab({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleWordExport(estimation);
+                            handleWordExport(estimation, e);
                           }}
                           className="text-blue-600 hover:text-blue-800"
                           title="Générer l'estimation"
                         >
-                          <FileText style={{ width: '16px', height: '16px' }} />
+                          <FileText className="h-4 w-4" />
                         </button>
                         {estimation.status !== 'converted' && (
                           <button
@@ -644,7 +655,7 @@ export function EstimationsTab({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleWordExport(estimation);
+                            handleWordExport(estimation, e);
                           }}
                           className="text-blue-600 hover:text-blue-800"
                           title="Générer l'estimation"
@@ -657,7 +668,7 @@ export function EstimationsTab({
                               e.stopPropagation();
                               handleDeleteEstimation(estimation, e);
                             }}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-red-600 hover:text-red-700"
                             title="Supprimer"
                           >
                             <Trash2 className="h-5 w-5" />
