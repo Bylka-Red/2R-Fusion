@@ -16,7 +16,6 @@ interface PropertyTabProps {
   setOfficialDesignation: (designation: string) => void;
   cadastralSections: CadastralSection[];
   setCadastralSections: (sections: CadastralSection[]) => void;
-  copyFirstSellerAddress: () => void;
   sellers: Seller[];
   onPropertyTypeChange: (type: 'personal-not-family' | 'personal-family') => void;
   propertyFamilyType: 'personal-not-family' | 'personal-family';
@@ -47,7 +46,6 @@ export function PropertyTab({
   setOfficialDesignation,
   cadastralSections,
   setCadastralSections,
-  copyFirstSellerAddress,
   sellers,
   onPropertyTypeChange,
   propertyFamilyType,
@@ -180,6 +178,25 @@ export function PropertyTab({
     return total + (parseInt(section.surface) || 0);
   }, 0);
 
+  const handleCopyFirstSellerAddress = () => {
+    console.log("Button clicked: Copy First Seller Address"); // Log pour vérifier si la fonction est appelée
+
+    if (sellers.length > 0) {
+      const address = sellers[0].address;
+      console.log("Address object:", address); // Log pour vérifier la structure de l'adresse
+
+      if (address && typeof address === 'object' && address.label) {
+        const fullAddress = address.label;
+        console.log("Full address to be copied:", fullAddress); // Log pour vérifier l'adresse complète
+        setPropertyAddress({ fullAddress });
+      } else {
+        console.error("Address does not contain a valid label:", address);
+      }
+    } else {
+      console.error("No sellers available to copy address from.");
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -190,7 +207,10 @@ export function PropertyTab({
               Adresse du bien
             </h2>
             <button
-              onClick={copyFirstSellerAddress}
+              onClick={() => {
+                console.log("Copy button clicked"); // Log pour vérifier si le bouton est cliqué
+                handleCopyFirstSellerAddress();
+              }}
               className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043]"
               title="Copier l'adresse du premier vendeur"
             >
@@ -217,7 +237,7 @@ export function PropertyTab({
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="space-y-6">
           <h2 className="text-xl font-semibold text-gray-800">Type de propriété</h2>
-          
+
           <div className="flex space-x-4">
             <button
               onClick={() => setPropertyType('monopropriete')}
@@ -305,7 +325,7 @@ export function PropertyTab({
                             Ajouter un tantième
                           </button>
                         </div>
-                        
+
                         {lot.tantiemes.map((tantieme, tantiemeIndex) => (
                           <div key={tantiemeIndex} className="grid grid-cols-3 gap-4 items-start bg-white p-3 rounded-md">
                             <label>

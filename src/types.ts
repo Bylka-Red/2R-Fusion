@@ -83,6 +83,7 @@ export type Owner = {
   address: string;
   phones: string[];
   emails: string[];
+  title?: string;
 };
 
 export type Estimation = {
@@ -94,7 +95,7 @@ export type Estimation = {
   notes?: string;
   commercial?: string;
 
-  propertyAddress: PropertyAddress;
+  propertyAddress: string;
   propertyType: 'house' | 'apartment';
   isInCopropriete: boolean;
   surface: number;
@@ -122,9 +123,7 @@ export type Estimation = {
   comments?: string;
 };
 
-export type PropertyAddress = {
-  fullAddress: string;
-};
+export type PropertyAddress = string;
 
 export type TantiemeDetails = {
   numerator: string;

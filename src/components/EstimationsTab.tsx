@@ -50,7 +50,8 @@ export function EstimationsTab({
       const { data: estimationsData, error } = await supabase
         .from('estimations')
         .select('*')
-        .order('estimation_date', { ascending: false });
+        .order('estimation_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading estimations:', error);
@@ -241,7 +242,6 @@ export function EstimationsTab({
       event.stopPropagation();
     }
     try {
-      // Récupérer l'estimation complète depuis la base de données
       const fullEstimation = await getEstimation(estimation.id);
       if (fullEstimation) {
         await generateEstimationFromTemplate(fullEstimation);
@@ -286,9 +286,19 @@ export function EstimationsTab({
           : b.owners[0].lastName.localeCompare(a.owners[0].lastName);
       }
       if (key === 'estimationDate') {
+        const dateA = new Date(a.estimationDate).getTime();
+        const dateB = new Date(b.estimationDate).getTime();
+        const createdAtA = new Date(a.createdAt).getTime();
+        const createdAtB = new Date(b.createdAt).getTime();
+        
+        if (dateA === dateB) {
+          return direction === 'ascending'
+            ? createdAtA - createdAtB
+            : createdAtB - createdAtA;
+        }
         return direction === 'ascending'
-          ? new Date(a.estimationDate).getTime() - new Date(b.estimationDate).getTime()
-          : new Date(b.estimationDate).getTime() - new Date(a.estimationDate).getTime();
+          ? dateA - dateB
+          : dateB - dateA;
       }
       if (key === 'propertyType') {
         return direction === 'ascending'

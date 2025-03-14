@@ -201,31 +201,24 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
                   </label>
                 </div>
 
-<label className="flex flex-col">
-  <div className="flex items-center gap-2 mb-2">
-    <MapPin className="h-4 w-4 text-gray-400" />
-    <span>Adresse</span>
-  </div>
-  <AddressAutocomplete
-    value={owner.address?.fullAddress || ''}
-    onChange={(result) => {
-      console.log("AddressAutocomplete result:", result); // Affiche le résultat dans la console
-      if (result && typeof result === 'object' && 'label' in result) {
-        updateOwner(index, 'address', { fullAddress: result.label });
-      } else if (typeof result === 'string') {
-        updateOwner(index, 'address', { fullAddress: result });
-      }
-    }}
-    placeholder="Adresse du propriétaire"
-    showIcon={false}
-  />
-</label>
-
-
-
-
-
-
+                <label className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span>Adresse</span>
+                  </div>
+                  <AddressAutocomplete
+                    value={owner.address}
+                    onChange={(result) => {
+                      if (typeof result === 'object' && 'label' in result) {
+                        updateOwner(index, 'address', result.label);
+                      } else if (typeof result === 'string') {
+                        updateOwner(index, 'address', result);
+                      }
+                    }}
+                    placeholder="Adresse du propriétaire"
+                    showIcon={false}
+                  />
+                </label>
 
                 <div className="grid grid-cols-2 gap-4">
                   <label className="flex flex-col">
