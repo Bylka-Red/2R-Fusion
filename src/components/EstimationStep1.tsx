@@ -207,7 +207,7 @@ const EstimationStep1: React.FC<EstimationStep1Props> = ({
                     <span>Adresse</span>
                   </div>
                   <AddressAutocomplete
-                    value={owner.address}
+                    value={typeof owner.address === 'string' ? owner.address : owner.address.fullAddress || ''}
                     onChange={(result) => {
                       if (typeof result === 'object' && 'label' in result) {
                         updateOwner(index, 'address', result.label);

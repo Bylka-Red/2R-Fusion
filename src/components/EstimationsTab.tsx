@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Home, Calendar, ArrowRight, Trash2, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2 } from 'lucide-react';
+import { Plus, Building2, Home, Calendar, Repeat, Trash2, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2 } from 'lucide-react';
 import type { Estimation, EstimationStatus, Commercial } from '../types';
 import { EstimationForm } from './EstimationForm';
 import { EstimationReport } from './EstimationReport';
@@ -290,7 +290,7 @@ export function EstimationsTab({
         const dateB = new Date(b.estimationDate).getTime();
         const createdAtA = new Date(a.createdAt).getTime();
         const createdAtB = new Date(b.createdAt).getTime();
-        
+
         if (dateA === dateB) {
           return direction === 'ascending'
             ? createdAtA - createdAtB
@@ -582,7 +582,7 @@ export function EstimationsTab({
                           className="text-[#0b8043] hover:text-[#097339]"
                           title="Convertir en mandat"
                         >
-                          <ArrowRight className="h-4 w-4" />
+                          <Repeat className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -692,7 +692,7 @@ export function EstimationsTab({
                           className="text-[#0b8043] hover:text-[#097339]"
                           title="Convertir en mandat"
                         >
-                          <ArrowRight className="h-5 w-5" />
+                          <Repeat className="h-5 w-5" />
                         </button>
                       </div>
                     </div>
