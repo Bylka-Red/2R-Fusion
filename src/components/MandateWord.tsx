@@ -490,7 +490,7 @@ export async function generateMandateWord({
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
-                text: `N° ${mandate.mandateNumber}`,
+                text: `N° ${mandate.mandate_number}`,
                 size: 24,
                 bold: true,
               }),
@@ -685,7 +685,7 @@ export async function generateMandateWord({
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, `mandat-${mandate.mandateNumber}.docx`);
+    saveAs(blob, `mandat-${mandate.mandate_number}.docx`);
   } catch (error) {
     console.error('Error generating Word document:', error);
     throw error;

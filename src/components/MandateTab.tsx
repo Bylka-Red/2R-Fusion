@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, User, Download, Key, Euro, History, Plus, Calendar, FileText } from 'lucide-react';
+import { ChevronRight, User, Download, Key, Euro, History, Plus, Calendar, FileText, Save, Loader2 } from 'lucide-react';
 import type { Mandate, Seller, PriceAmendment, PropertyAddress, PropertyLot, CadastralSection, Commercial } from '../types';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { MandatePDF } from './MandatePDF';
-import { KeyReceiptPDF } from './KeyReceiptPDF';
-import { PriceAmendmentPDF } from './PriceAmendmentPDF';
-import { generateMandateWord } from './MandateWord';
+import { generateMandateFromTemplate } from './MandateTemplateGenerator';
+import { saveMandate } from '../services/mandateService';
 
 interface MandateTabProps {
   mandate: Mandate;
@@ -42,10 +39,19 @@ export function MandateTab({
 }: MandateTabProps) {
   const [showAmendmentHistory, setShowAmendmentHistory] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  const [mandatePdfKey, setMandatePdfKey] = useState(0);
-  const [keyReceiptPdfKey, setKeyReceiptPdfKey] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const hasSellers = sellers.length > 0;
+
+  // Effet pour réinitialiser les messages d'erreur/succès
+  useEffect(() => {
+    if (saveSuccess) {
+      const timer = setTimeout(() => setSaveSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveSuccess]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -63,60 +69,66 @@ export function MandateTab({
     });
   };
 
-  const renderPDFDownloadLink = (
-    document: React.ReactElement,
-    fileName: string,
-    buttonText: string,
-    loadingText: string,
-    className: string,
-    pdfKey: number
-  ) => {
-    return (
-      <PDFDownloadLink
-        key={pdfKey}
-        document={document}
-        fileName={fileName}
-        className={className}
-        onError={(error) => {
-          console.error('PDF generation error:', error);
-          setPdfError('Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.');
-        }}
-      >
-        {({ loading }) => (
-          <>
-            <Download className="h-5 w-5 mr-2" />
-            {loading ? loadingText : buttonText}
-          </>
-        )}
-      </PDFDownloadLink>
-    );
-  };
-
   const handleWordDownload = async () => {
     try {
-      await generateMandateWord({
-        mandate,
-        sellers,
-        propertyAddress,
-        propertyType,
-        coPropertyAddress,
-        lots,
-        officialDesignation,
-        cadastralSections,
-        occupationStatus,
-        dpeStatus,
-      });
+      await generateMandateFromTemplate(mandate);
     } catch (error) {
       console.error('Error generating Word document:', error);
       alert('Une erreur est survenue lors de la génération du document Word. Veuillez réessayer.');
     }
   };
 
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+      setSaveSuccess(false);
+
+      // Vérification des vendeurs
+      if (!sellers || sellers.length === 0) {
+        throw new Error('Au moins un vendeur est requis');
+      }
+
+      // Préparation du mandat avec toutes les données nécessaires
+      const mandateToSave: Mandate = {
+        ...mandate,
+        sellers,
+        propertyAddress,
+        propertyType,
+        isInCopropriete: propertyType === 'copropriete',
+        coPropertyAddress,
+        lots,
+        officialDesignation,
+        cadastralSections,
+        occupationStatus,
+        dpeStatus,
+      };
+
+      // Sauvegarde du mandat
+      const savedMandate = await saveMandate(mandateToSave);
+
+      if (savedMandate) {
+        setSaveSuccess(true);
+        // Mise à jour du mandat dans le state parent si nécessaire
+        onMandateChange('mandate_number', savedMandate.mandate_number);
+      }
+    } catch (error) {
+      console.error('Error saving mandate:', error);
+      setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Vérification des frais
+  const fees = mandate.fees || { ttc: 0, ht: 0 };
+
+  // Vérification des clés
+  const keys = mandate.keys || { hasKeys: false, receivedDate: '', returnedDate: '', details: '' };
+
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">Informations du mandat</h2>
-        
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block">
@@ -133,8 +145,8 @@ export function MandateTab({
               <span>Numéro du mandat</span>
               <input
                 type="text"
-                value={mandate.mandateNumber}
-                onChange={(e) => onMandateChange('mandateNumber', e.target.value)}
+                value={mandate.mandate_number}
+                onChange={(e) => onMandateChange('mandate_number', e.target.value)}
                 placeholder="Ex: 2024-001"
               />
             </label>
@@ -200,7 +212,7 @@ export function MandateTab({
                 <div className="relative">
                   <input
                     type="text"
-                    value={mandate.fees.ttc ? mandate.fees.ttc.toLocaleString('fr-FR') : '0'}
+                    value={fees.ttc ? fees.ttc.toLocaleString('fr-FR') : '0'}
                     onChange={(e) => {
                       const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
                       onMandateChange('feesTTC', value);
@@ -219,9 +231,9 @@ export function MandateTab({
                 <div className="relative">
                   <input
                     type="text"
-                    value={mandate.fees.ht ? mandate.fees.ht.toLocaleString('fr-FR') : '0'}
+                    value={fees.ht ? fees.ht.toLocaleString('fr-FR') : '0'}
                     disabled
-                    className="bg-gray-100 pr-10"
+                    className="bg-gray-100 cursor-not-allowed pr-10"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Euro className="h-4 w-4 text-gray-400" />
@@ -247,36 +259,14 @@ export function MandateTab({
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">Gestion des clés</h3>
-            <div className="flex gap-2">
-              {mandate.keys.hasKeys && (
-                <>
-                  {renderPDFDownloadLink(
-                    <KeyReceiptPDF mandate={mandate} seller={sellers[0]} type="reception" />,
-                    `recu-cles-${mandate.mandateNumber}.pdf`,
-                    'Reçu de remise',
-                    'Génération...',
-                    'inline-flex items-center px-3 py-2 text-sm font-medium text-[#0b8043] hover:text-[#097339] border border-[#0b8043] rounded-md',
-                    keyReceiptPdfKey
-                  )}
-                  {mandate.keys.returnedDate && renderPDFDownloadLink(
-                    <KeyReceiptPDF mandate={mandate} seller={sellers[0]} type="return" />,
-                    `restitution-cles-${mandate.mandateNumber}.pdf`,
-                    'Reçu de restitution',
-                    'Génération...',
-                    'inline-flex items-center px-3 py-2 text-sm font-medium text-[#0b8043] hover:text-[#097339] border border-[#0b8043] rounded-md',
-                    keyReceiptPdfKey + 1
-                  )}
-                </>
-              )}
-            </div>
           </div>
           <div className="space-y-4">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={mandate.keys.hasKeys}
+                checked={keys.hasKeys}
                 onChange={(e) => onMandateChange('keys', {
-                  ...mandate.keys,
+                  ...keys,
                   hasKeys: e.target.checked
                 })}
                 className="rounded border-gray-300 text-[#0b8043] focus:ring-[#0b8043]"
@@ -284,16 +274,16 @@ export function MandateTab({
               <span className="text-sm font-medium text-gray-700">Clés en agence</span>
             </label>
 
-            {mandate.keys.hasKeys && (
+            {keys.hasKeys && (
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <label className="block">
                     <span>Date de remise des clés</span>
                     <input
                       type="date"
-                      value={mandate.keys.receivedDate || ''}
+                      value={keys.receivedDate || ''}
                       onChange={(e) => onMandateChange('keys', {
-                        ...mandate.keys,
+                        ...keys,
                         receivedDate: e.target.value
                       })}
                     />
@@ -302,9 +292,9 @@ export function MandateTab({
                     <span>Date de restitution</span>
                     <input
                       type="date"
-                      value={mandate.keys.returnedDate || ''}
+                      value={keys.returnedDate || ''}
                       onChange={(e) => onMandateChange('keys', {
-                        ...mandate.keys,
+                        ...keys,
                         returnedDate: e.target.value
                       })}
                     />
@@ -313,9 +303,9 @@ export function MandateTab({
                 <label className="block">
                   <span>Détail des clés</span>
                   <textarea
-                    value={mandate.keys.details}
+                    value={keys.details}
                     onChange={(e) => onMandateChange('keys', {
-                      ...mandate.keys,
+                      ...keys,
                       details: e.target.value
                     })}
                     placeholder="Ex: 2 clés porte d'entrée, 1 clé boîte aux lettres..."
@@ -347,25 +337,6 @@ export function MandateTab({
           </div>
           {hasSellers ? (
             <div className="flex gap-4">
-              {renderPDFDownloadLink(
-                <MandatePDF
-                  mandate={mandate}
-                  sellers={sellers}
-                  propertyAddress={propertyAddress}
-                  propertyType={propertyType}
-                  coPropertyAddress={coPropertyAddress}
-                  lots={lots}
-                  officialDesignation={officialDesignation}
-                  cadastralSections={cadastralSections}
-                  occupationStatus={occupationStatus}
-                  dpeStatus={dpeStatus}
-                />,
-                `mandat-${mandate.mandateNumber}.pdf`,
-                'Télécharger en PDF',
-                'Génération...',
-                'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#0b8043] hover:bg-[#097339] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043]',
-                mandatePdfKey
-              )}
               <button
                 onClick={handleWordDownload}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -408,14 +379,6 @@ export function MandateTab({
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className="font-medium">{formatDate(amendment.date)}</span>
                     </div>
-                    {renderPDFDownloadLink(
-                      <PriceAmendmentPDF mandate={mandate} amendment={amendment} seller={sellers[0]} />,
-                      `avenant-${mandate.mandateNumber}-${index + 1}.pdf`,
-                      'Télécharger',
-                      'Génération...',
-                      'text-[#0b8043] hover:text-[#097339] flex items-center',
-                      index
-                    )}
                   </div>
                   <div className="grid grid-cols-3 gap-4 mt-2">
                     <div>
@@ -450,7 +413,7 @@ export function MandateTab({
       {pdfError && (
         <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           {pdfError}
-          <button 
+          <button
             onClick={() => setPdfError(null)}
             className="ml-2 text-red-500 hover:text-red-700"
           >

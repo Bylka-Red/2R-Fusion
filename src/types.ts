@@ -2,17 +2,17 @@ import React from 'react';
 
 export type Room = {
   name: string;
-  area: number;
+  area: number; // Surface en mètres carrés
 };
 
 export type Level = {
   name: string;
   rooms: Room[];
   type: 'basement' | 'regular' | 'outbuilding';
-  floorNumber?: number;
-  totalFloors?: number;
-  floorLevel?: string;
-  chargesCopro?: number;
+  floorNumber?: number; // Numéro de l'étage
+  totalFloors?: number; // Nombre total d'étages
+  floorLevel?: string; // Niveau de l'étage (ex: RDC, 1er étage)
+  chargesCopro?: number; // Charges de copropriété
 };
 
 export type EstimationStatus = 'draft' | 'completed' | 'converted';
@@ -226,7 +226,7 @@ export type PriceAmendment = {
 export type Mandate = {
   date: string;
   type: MandateType;
-  mandateNumber: string;
+  mandate_number: string;
   netPrice: number;
   fees: {
     ttc: number;
@@ -242,6 +242,26 @@ export type Mandate = {
   };
   amendments?: PriceAmendment[];
   purchaseOffers?: PurchaseOffer[];
+  sellers: Seller[]; // Ajout de ce champ
+  propertyAddress: PropertyAddress; // Ajout de ce champ
+  propertyType: 'monopropriete' | 'copropriete'; // Ajout de ce champ
+  isInCopropriete: boolean; // Ajout de ce champ
+  surface: number; // Ajout de ce champ
+  landSurface?: number; // Ajout de ce champ
+  rooms: number; // Ajout de ce champ
+  bedrooms: number; // Ajout de ce champ
+  constructionYear?: number; // Ajout de ce champ
+  condition: string; // Ajout de ce champ
+  criteria: PropertyCriteria; // Ajout de ce champ
+  levels: Level[]; // Ajout de ce champ
+  features: PropertyFeature[]; // Ajout de ce champ
+  marketAnalysis: MarketAnalysis; // Ajout de ce champ
+  estimatedPrice: {
+    low: number;
+    high: number;
+  }; // Ajout de ce champ
+  pricePerSqm: number; // Ajout de ce champ
+  comments?: string; // Ajout de ce champ
 };
 
 export type OccupationStatus = 'occupied-by-seller' | 'vacant' | 'rented';

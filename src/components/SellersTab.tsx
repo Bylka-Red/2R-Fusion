@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { SellerForm } from './SellerForm';
 import type { Seller } from '../types';
@@ -12,18 +12,23 @@ interface SellersTabProps {
   propertyFamilyType: 'personal-not-family' | 'personal-family';
 }
 
-export function SellersTab({ 
-  sellers, 
-  onSellerChange, 
-  onAddSeller, 
+export function SellersTab({
+  sellers,
+  onSellerChange,
+  onAddSeller,
   onRemoveSeller,
   onPropertyTypeChange,
   propertyFamilyType
 }: SellersTabProps) {
+  useEffect(() => {
+    console.log("SellersTab received sellers:", sellers);
+  }, [sellers]);
+
   const handleCoupleChange = (isCouple: boolean) => {
+    console.log(`Couple status changed to: ${isCouple}`);
     if (sellers.length >= 2) {
       const updatedSeller2 = { ...sellers[1] };
-      
+
       if (isCouple) {
         updatedSeller2.maritalStatus = sellers[0].maritalStatus;
         updatedSeller2.marriageDetails = { ...sellers[0].marriageDetails };
@@ -45,7 +50,7 @@ export function SellersTab({
         };
         onSellerChange(0, updatedSeller1);
       }
-      
+
       onSellerChange(1, updatedSeller2);
     }
   };
@@ -65,31 +70,33 @@ export function SellersTab({
 
       <div className={`grid gap-8 ${sellers.length === 2 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
         {sellers.map((seller, index) => (
-          <SellerForm
-            key={index}
-            seller={seller}
-            onChange={(updatedSeller) => {
-              onSellerChange(index, updatedSeller);
-              
-              if (index === 0 && seller.couple?.isCouple && sellers.length >= 2) {
-                const updatedSeller2 = { ...sellers[1] };
-                updatedSeller2.maritalStatus = updatedSeller.maritalStatus;
-                updatedSeller2.marriageDetails = { ...updatedSeller.marriageDetails };
-                updatedSeller2.pacsDetails = updatedSeller.pacsDetails ? { ...updatedSeller.pacsDetails } : undefined;
-                updatedSeller2.divorceDetails = updatedSeller.divorceDetails ? { ...updatedSeller.divorceDetails } : undefined;
-                updatedSeller2.widowDetails = updatedSeller.widowDetails ? { ...updatedSeller.widowDetails } : undefined;
-                onSellerChange(1, updatedSeller2);
-              }
-            }}
-            onRemove={() => onRemoveSeller(index)}
-            canRemove={sellers.length > 1}
-            index={index}
-            previousSeller={index > 0 ? sellers[index - 1] : undefined}
-            onPropertyTypeChange={onPropertyTypeChange}
-            propertyFamilyType={propertyFamilyType}
-            totalSellers={sellers.length}
-            onCoupleChange={index === 1 ? handleCoupleChange : undefined}
-          />
+         <SellerForm
+  key={index}
+  seller={seller}
+  onChange={(updatedSeller) => {
+    console.log(`Updating seller ${index}:`, updatedSeller);
+    onSellerChange(index, updatedSeller);
+
+    if (index === 0 && seller.couple?.isCouple && sellers.length >= 2) {
+      const updatedSeller2 = { ...sellers[1] };
+      updatedSeller2.maritalStatus = updatedSeller.maritalStatus;
+      updatedSeller2.marriageDetails = { ...updatedSeller.marriageDetails };
+      updatedSeller2.pacsDetails = updatedSeller.pacsDetails ? { ...updatedSeller.pacsDetails } : undefined;
+      updatedSeller2.divorceDetails = updatedSeller.divorceDetails ? { ...updatedSeller.divorceDetails } : undefined;
+      updatedSeller2.widowDetails = updatedSeller.widowDetails ? { ...updatedSeller.widowDetails } : undefined;
+      onSellerChange(1, updatedSeller2);
+    }
+  }}
+  onRemove={() => onRemoveSeller(index)}
+  canRemove={sellers.length > 1}
+  index={index}
+  previousSeller={index > 0 ? sellers[index - 1] : undefined}
+  onPropertyTypeChange={onPropertyTypeChange}
+  propertyFamilyType={propertyFamilyType}
+  totalSellers={sellers.length}
+  onCoupleChange={index === 1 ? handleCoupleChange : undefined}
+/>
+
         ))}
       </div>
     </div>

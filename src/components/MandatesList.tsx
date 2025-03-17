@@ -1,20 +1,56 @@
-import React from 'react';
-import { Building2, Calendar, Euro, Edit, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Building2, Calendar, Euro, Edit, Plus, Trash2, Loader2 } from 'lucide-react';
 import type { Mandate } from '../types';
+import { getMandates, deleteMandate } from '../services/mandateService';
 
 interface MandatesListProps {
   mandates: Mandate[];
   onMandateSelect: (mandate: Mandate) => void;
   onCreateMandate: () => void;
-  onDeleteMandate: (mandateNumber: string) => void;
+  onDeleteMandate: (mandate_number: string) => void;
 }
 
 export function MandatesList({ 
-  mandates, 
+  mandates: propMandates, 
   onMandateSelect, 
   onCreateMandate,
   onDeleteMandate 
 }: MandatesListProps) {
+  const [mandates, setMandates] = useState<Mandate[]>(propMandates);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadMandates();
+  }, []);
+
+  const loadMandates = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getMandates();
+      setMandates(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading mandates:', err);
+      setError('Une erreur est survenue lors du chargement des mandats');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteMandate = async (mandate_number: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce mandat ?')) {
+      try {
+        await deleteMandate(mandate_number);
+        onDeleteMandate(mandate_number);
+        await loadMandates(); // Recharger la liste après suppression
+      } catch (err) {
+        console.error('Error deleting mandate:', err);
+        setError('Une erreur est survenue lors de la suppression du mandat');
+      }
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -22,6 +58,22 @@ export function MandatesList({
       maximumFractionDigits: 0
     }).format(price);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 text-[#0b8043] animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -60,10 +112,10 @@ export function MandatesList({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                    Numéro
+                    Vendeur
                   </th>
                   <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Date
+                    Adresse du bien
                   </th>
                   <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Type
@@ -74,6 +126,9 @@ export function MandatesList({
                   <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Commercial
                   </th>
+                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Date
+                  </th>
                   <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -81,16 +136,26 @@ export function MandatesList({
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {mandates.map((mandate) => (
-                  <tr key={mandate.mandateNumber}>
+                  <tr key={mandate.mandate_number}>
                     <td className="py-4 pl-4 pr-3 text-sm sm:pl-6">
                       <div className="font-medium text-gray-900">
-                        {mandate.mandateNumber}
+                        {mandate.sellers[0]?.firstName} {mandate.sellers[0]?.lastName}
                       </div>
+                      {mandate.sellers[0]?.phone && (
+                        <div className="text-gray-500">{mandate.sellers[0].phone}</div>
+                      )}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-500">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        {new Date(mandate.date).toLocaleDateString('fr-FR')}
+                        <Building2 className="h-5 w-5 text-gray-400 mr-2" />
+                        <div>
+                          <div className="text-gray-900">
+                            {mandate.propertyAddress.fullAddress}
+                          </div>
+                          <div className="text-gray-500">
+                            {mandate.surface} m² - {mandate.rooms} pièces
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-500">
@@ -107,6 +172,12 @@ export function MandatesList({
                     <td className="px-3 py-4 text-sm text-gray-500">
                       {mandate.commercial}
                     </td>
+                    <td className="px-3 py-4 text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                        {new Date(mandate.date).toLocaleDateString('fr-FR')}
+                      </div>
+                    </td>
                     <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                       <div className="flex justify-end gap-2">
                         <button
@@ -117,7 +188,7 @@ export function MandatesList({
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => onDeleteMandate(mandate.mandateNumber)}
+                          onClick={() => handleDeleteMandate(mandate.mandate_number)}
                           className="text-red-600 hover:text-red-900"
                           title="Supprimer"
                         >

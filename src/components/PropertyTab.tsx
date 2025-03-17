@@ -179,15 +179,15 @@ export function PropertyTab({
   }, 0);
 
   const handleCopyFirstSellerAddress = () => {
-    console.log("Button clicked: Copy First Seller Address"); // Log pour vérifier si la fonction est appelée
+    console.log("Button clicked: Copy First Seller Address");
 
     if (sellers.length > 0) {
       const address = sellers[0].address;
-      console.log("Address object:", address); // Log pour vérifier la structure de l'adresse
+      console.log("Address object:", address);
 
       if (address && typeof address === 'object' && address.label) {
         const fullAddress = address.label;
-        console.log("Full address to be copied:", fullAddress); // Log pour vérifier l'adresse complète
+        console.log("Full address to be copied:", fullAddress);
         setPropertyAddress({ fullAddress });
       } else {
         console.error("Address does not contain a valid label:", address);
@@ -208,7 +208,7 @@ export function PropertyTab({
             </h2>
             <button
               onClick={() => {
-                console.log("Copy button clicked"); // Log pour vérifier si le bouton est cliqué
+                console.log("Copy button clicked");
                 handleCopyFirstSellerAddress();
               }}
               className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043]"

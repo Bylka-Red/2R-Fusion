@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { User2, Building2, MapPin, Phone, Mail, Heart, Copy, Trash2 } from 'lucide-react';
 import type { Seller } from '../types';
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -18,12 +18,12 @@ interface SellerFormProps {
   showPropertyTypeSection?: boolean;
 }
 
-export function SellerForm({ 
-  seller, 
-  onChange, 
-  onRemove, 
-  canRemove, 
-  index, 
+export function SellerForm({
+  seller,
+  onChange,
+  onRemove,
+  canRemove,
+  index,
   previousSeller,
   onPropertyTypeChange,
   propertyFamilyType,
@@ -31,65 +31,72 @@ export function SellerForm({
   onCoupleChange,
   showPropertyTypeSection = true
 }: SellerFormProps) {
+  useEffect(() => {
+    console.log(`SellerForm received seller ${index}:`, seller);
+  }, [seller, index]);
+
   const handleChange = (field: string, value: any) => {
-    if (field === 'maritalStatus') {
-      const newSeller = { ...seller, [field]: value };
-      
-      newSeller.marriageDetails = {
+  console.log(`Changing ${field} to:`, value);
+  if (field === 'maritalStatus') {
+    const newSeller = { ...seller, [field]: value };
+
+    newSeller.marriageDetails = {
+      date: '',
+      place: '',
+      regime: 'community',
+    };
+    newSeller.customMaritalStatus = undefined;
+    newSeller.pacsDetails = undefined;
+    newSeller.divorceDetails = undefined;
+    newSeller.widowDetails = undefined;
+
+    if (value === 'celibataire-pacse') {
+      newSeller.pacsDetails = {
         date: '',
         place: '',
-        regime: 'community',
+        reference: '',
+        partnerName: '',
       };
-      newSeller.customMaritalStatus = undefined;
-      newSeller.pacsDetails = undefined;
-      newSeller.divorceDetails = undefined;
-      newSeller.widowDetails = undefined;
-      
-      if (value === 'celibataire-pacse') {
-        newSeller.pacsDetails = {
-          date: '',
-          place: '',
-          reference: '',
-          partnerName: '',
-        };
-      } else if (value === 'divorce') {
-        newSeller.divorceDetails = {
-          exSpouseName: '',
-        };
-      } else if (value === 'veuf') {
-        newSeller.widowDetails = {
-          deceasedSpouseName: '',
-        };
-      }
-      
-      onChange(newSeller);
-    } else if (field === 'pacsDetails') {
-      onChange({
-        ...seller,
-        pacsDetails: { ...seller.pacsDetails, ...value },
-      });
-    } else if (field === 'divorceDetails') {
-      onChange({
-        ...seller,
-        divorceDetails: { ...seller.divorceDetails, ...value },
-      });
-    } else if (field === 'widowDetails') {
-      onChange({
-        ...seller,
-        widowDetails: { ...seller.widowDetails, ...value },
-      });
-    } else if (field === 'marriageDetails') {
-      onChange({
-        ...seller,
-        marriageDetails: { ...seller.marriageDetails, ...value },
-      });
-    } else {
-      onChange({ ...seller, [field]: value });
+    } else if (value === 'divorce') {
+      newSeller.divorceDetails = {
+        exSpouseName: '',
+      };
+    } else if (value === 'veuf') {
+      newSeller.widowDetails = {
+        deceasedSpouseName: '',
+      };
     }
-  };
+
+    onChange(newSeller);
+  } else if (field === 'pacsDetails') {
+    onChange({
+      ...seller,
+      pacsDetails: { ...seller.pacsDetails, ...value },
+    });
+  } else if (field === 'divorceDetails') {
+    onChange({
+      ...seller,
+      divorceDetails: { ...seller.divorceDetails, ...value },
+    });
+  } else if (field === 'widowDetails') {
+    onChange({
+      ...seller,
+      widowDetails: { ...seller.widowDetails, ...value },
+    });
+  } else if (field === 'marriageDetails') {
+    onChange({
+      ...seller,
+      marriageDetails: { ...seller.marriageDetails, ...value },
+    });
+  } else {
+    onChange({ ...seller, [field]: value });
+  }
+};
+
 
   const copyPreviousAddress = () => {
     if (previousSeller) {
+      console.log("Copying previous seller's address.");
       handleChange('address', { ...previousSeller.address });
     }
   };
@@ -103,7 +110,7 @@ export function SellerForm({
     ].includes(status);
   };
 
-  const shouldShowPropertyTypeSection = index === 0 && 
+  const shouldShowPropertyTypeSection = index === 0 &&
     !['celibataire-non-pacse', 'divorce', 'veuf'].includes(seller.maritalStatus) &&
     totalSellers === 1 &&
     showPropertyTypeSection;
@@ -184,7 +191,7 @@ export function SellerForm({
                 <input
                   type="text"
                   value={seller.lastName}
-                  onChange={(e) => handleChange('lastName', e.target.value)}
+                  onChange={(e) => handleChange('lastName', e.target.value.toUpperCase())}
                   className="pl-10"
                 />
               </div>
@@ -400,7 +407,7 @@ export function SellerForm({
                 </label>
               )}
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <label>
                 <span>Nationalité</span>

@@ -118,7 +118,7 @@ export function PriceAmendmentPDF({ mandate, amendment, seller }: PriceAmendment
 
         <View style={styles.section}>
           <Text style={styles. text}>
-            Mandat de vente n° {mandate.mandateNumber} en date du {formatDate(mandate.date)}
+            Mandat de vente n° {mandate.mandate_number} en date du {formatDate(mandate.date)}
           </Text>
         </View>
 

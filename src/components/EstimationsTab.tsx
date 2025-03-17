@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Home, Calendar, Repeat, Trash2, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2 } from 'lucide-react';
+import { Plus, Building2, Home, Calendar, Repeat, Trash2, Download, LayoutGrid, LayoutList, MapPin, User, FileText, Loader2, CheckCircle } from 'lucide-react';
 import type { Estimation, EstimationStatus, Commercial } from '../types';
 import { EstimationForm } from './EstimationForm';
 import { EstimationReport } from './EstimationReport';
@@ -229,11 +229,37 @@ export function EstimationsTab({
     setShowConfirmationDialog(true);
   };
 
-  const confirmConvertToMandate = () => {
+  const confirmConvertToMandate = async () => {
     if (estimationToConvert) {
-      onConvertToMandate(estimationToConvert);
-      setShowConfirmationDialog(false);
-      setEstimationToConvert(null);
+      try {
+        // Mettre à jour le statut de l'estimation
+        const { error: updateError } = await supabase
+          .from('estimations')
+          .update({ status: 'converted' })
+          .eq('id', estimationToConvert.id);
+
+        if (updateError) throw updateError;
+
+        // Mettre à jour l'état local
+        setEstimations(prevEstimations =>
+          prevEstimations.map(est =>
+            est.id === estimationToConvert.id
+              ? { ...est, status: 'converted' }
+              : est
+          )
+        );
+
+        // Convertir en mandat
+        onConvertToMandate(estimationToConvert);
+
+        setShowConfirmationDialog(false);
+        setEstimationToConvert(null);
+
+        // Recharger les estimations
+        await loadEstimations();
+      } catch (error) {
+        console.error('Error converting estimation:', error);
+      }
     }
   };
 
@@ -494,16 +520,23 @@ export function EstimationsTab({
                   <tr
                     key={estimation.id}
                     onClick={() => handleViewReport(estimation)}
-                    className="cursor-pointer hover:bg-gray-50"
+                    className={`cursor-pointer hover:bg-gray-50 ${
+                      estimation.status === 'converted' ? 'bg-green-50' : ''
+                    }`}
                   >
                     <td className="px-3 py-4 text-sm text-gray-500">
-                      {estimation.owners && estimation.owners[0] ? (
-                        <div className="truncate max-w-[185px]">
-                          <strong>{estimation.owners[0].firstName} {estimation.owners[0].lastName}</strong>
-                        </div>
-                      ) : (
-                        'Non renseigné'
-                      )}
+                      <div className="flex items-center gap-2">
+                        {estimation.owners && estimation.owners[0] ? (
+                          <div className="truncate max-w-[185px]">
+                            <strong>{estimation.owners[0].firstName} {estimation.owners[0].lastName}</strong>
+                          </div>
+                        ) : (
+                          'Non renseigné'
+                        )}
+                        {estimation.status === 'converted' && (
+                          <CheckCircle className="h-4 w-4 text-green-600" title="Convertie en mandat" />
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 pl-4 pr-3 text-sm sm:pl-6">
                       <div className="flex items-center">
@@ -574,16 +607,18 @@ export function EstimationsTab({
                             <Trash2 className="h-4 w-4" />
                           </button>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleConvertToMandate(estimation, e);
-                          }}
-                          className="text-[#0b8043] hover:text-[#097339]"
-                          title="Convertir en mandat"
-                        >
-                          <Repeat className="h-4 w-4" />
-                        </button>
+                        {estimation.status !== 'converted' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConvertToMandate(estimation, e);
+                            }}
+                            className="text-[#0b8043] hover:text-[#097339]"
+                            title="Convertir en mandat"
+                          >
+                            <Repeat className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -596,7 +631,9 @@ export function EstimationsTab({
             {sortedEstimations().map((estimation) => (
               <div
                 key={estimation.id}
-                className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden group cursor-pointer"
+                className={`block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden group cursor-pointer ${
+                  estimation.status === 'converted' ? 'bg-green-50' : ''
+                }`}
                 onClick={() => handleViewReport(estimation)}
               >
                 <div className="p-6">
@@ -606,6 +643,7 @@ export function EstimationsTab({
                         estimation.propertyType === 'house'
                           ? 'bg-orange-50 group-hover:bg-orange-100'
                           : 'bg-blue-50 group-hover:bg-blue-100'
+                        
                         } rounded-lg transition-colors duration-200 flex-shrink-0`}
                       >
                         {estimation.propertyType === 'house' ? (
@@ -615,9 +653,14 @@ export function EstimationsTab({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-1 truncate">
-                          {estimation.owners[0]?.firstName} {estimation.owners[0]?.lastName}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-1 truncate">
+                            {estimation.owners[0]?.firstName} {estimation.owners[0]?.lastName}
+                          </h3>
+                          {estimation.status === 'converted' && (
+                            <CheckCircle className="h-4 w-4 text-green-600" title="Convertie en mandat" />
+                          )}
+                        </div>
                         <div className="flex items-center mb-2">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             estimation.propertyType === 'house'
@@ -684,16 +727,18 @@ export function EstimationsTab({
                             <Trash2 className="h-5 w-5" />
                           </button>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleConvertToMandate(estimation, e);
-                          }}
-                          className="text-[#0b8043] hover:text-[#097339]"
-                          title="Convertir en mandat"
-                        >
-                          <Repeat className="h-5 w-5" />
-                        </button>
+                        {estimation.status !== 'converted' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConvertToMandate(estimation, e);
+                            }}
+                            className="text-[#0b8043] hover:text-[#097339]"
+                            title="Convertir en mandat"
+                          >
+                            <Repeat className="h-5 w-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

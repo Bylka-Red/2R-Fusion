@@ -121,9 +121,9 @@ export function KeyReceiptPDF({ mandate, seller, type }: KeyReceiptPDFProps) {
         <View style={styles.section}>
           <Text style={styles.text}>
             {type === 'reception' ? (
-              "Ces clés sont confiées à l'agence dans le cadre du mandat de vente n°" + mandate.mandateNumber + " signé le " + formatDate(mandate.date) + "."
+              "Ces clés sont confiées à l'agence dans le cadre du mandat de vente n°" + mandate.mandate_number + " signé le " + formatDate(mandate.date) + "."
             ) : (
-              "Cette restitution met fin à la garde des clés confiées à l'agence dans le cadre du mandat de vente n°" + mandate.mandateNumber + "."
+              "Cette restitution met fin à la garde des clés confiées à l'agence dans le cadre du mandat de vente n°" + mandate.mandate_number + "."
             )}
           </Text>
         </View>
