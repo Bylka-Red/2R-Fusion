@@ -338,6 +338,21 @@ export async function getEstimation(id: string) {
         ...(data.weaknesses || []).map(weakness => ({
           type: 'weakness' as const,
           description: weakness
+        })),
+        // Ajout des prix au m² vendus
+        ...(data.sold_prices || []).map(price => ({
+          type: 'soldPrice' as const,
+          description: price
+        })),
+        // Ajout des prix au m² à vendre
+        ...(data.for_sale_prices || []).map(price => ({
+          type: 'forSalePrice' as const,
+          description: price
+        })),
+        // Ajout des dates de vente
+        ...(data.sale_dates || []).map(date => ({
+          type: 'saleDate' as const,
+          description: date
         }))
       ],
       marketAnalysis: {
