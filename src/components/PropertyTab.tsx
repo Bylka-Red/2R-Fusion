@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Building2, Map, Copy, Plus, Trash2, Home, FileText } from 'lucide-react';
 import type { PropertyAddress, PropertyLot, CadastralSection, Seller, OccupationStatus, DPEStatus, TantiemeDetails } from '../types';
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -60,21 +60,23 @@ export function PropertyTab({
 }: PropertyTabProps) {
   const addLot = () => {
     if (lots.length < 10) {
-      setLots([...lots, {
+      const newLot: PropertyLot = {
         number: '',
         description: '',
         tantiemes: [{
           numerator: '',
           denominator: '10000',
-          type: 'general'
+          type: 'general',
+          customType: ''
         }],
         carrezSurface: '',
         carrezGuarantor: {
           type: 'owner',
           name: '',
-          date: '',
-        },
-      }]);
+          date: ''
+        }
+      };
+      setLots([...lots, newLot]);
     }
   };
 
@@ -89,7 +91,8 @@ export function PropertyTab({
     newLots[lotIndex].tantiemes.push({
       numerator: '',
       denominator: '10000',
-      type: 'general'
+      type: 'general',
+      customType: ''
     });
     setLots(newLots);
   };
@@ -201,6 +204,17 @@ export function PropertyTab({
     }
   };
 
+  useEffect(() => {
+    if (cadastralSections.length === 0) {
+      setCadastralSections([{
+        section: '',
+        number: '',
+        lieuDit: '',
+        surface: ''
+      }]);
+    }
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -229,6 +243,7 @@ export function PropertyTab({
               <AddressAutocomplete
                 value={propertyAddress.fullAddress}
                 onChange={({ label }) => {
+                  console.log("Changing property address to:", label);
                   setPropertyAddress({ fullAddress: label });
                 }}
                 placeholder="Saisissez l'adresse du bien"
@@ -244,7 +259,11 @@ export function PropertyTab({
 
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => setPropertyType('apartment')}
+              onClick={() => {
+                const newValue = 'apartment';
+                console.log("Changing property type to:", newValue);
+                setPropertyType(newValue);
+              }}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 propertyType === 'apartment'
                   ? 'bg-[#0b8043] text-white'
@@ -255,7 +274,11 @@ export function PropertyTab({
               Appartement
             </button>
             <button
-              onClick={() => setPropertyType('house')}
+              onClick={() => {
+                const newValue = 'house';
+                console.log("Changing property type to:", newValue);
+                setPropertyType(newValue);
+              }}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 propertyType === 'house'
                   ? 'bg-[#0b8043] text-white'
@@ -270,7 +293,11 @@ export function PropertyTab({
                 <input
                   type="checkbox"
                   checked={isInCopropriete}
-                  onChange={(e) => setIsInCopropriete(e.target.checked)}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    console.log("Changing isInCopropriete to:", newValue);
+                    setIsInCopropriete(newValue);
+                  }}
                   className="rounded border-gray-300 text-[#0b8043] focus:ring-[#0b8043]"
                 />
                 <span className="text-sm font-medium text-gray-700">
@@ -282,32 +309,33 @@ export function PropertyTab({
         </div>
       </div>
 
-      {propertyType === 'house' && isInCopropriete && (
+      {propertyType === 'apartment' || (propertyType === 'house' && isInCopropriete) ? (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Adresse officielle de la copropriété
-              </h3>
-              <div className="space-y-4">
-                <label>
-                  <span>Adresse complète</span>
-                  <AddressAutocomplete
-                    value={coPropertyAddress.fullAddress}
-                    onChange={({ label }) => setCoPropertyAddress({ fullAddress: label })}
-                    placeholder="Saisissez l'adresse de la copropriété"
-                  />
-                </label>
-              </div>
+            <h3 className="text-lg font-medium text-gray-900">
+              Adresse officielle de la copropriété
+            </h3>
+            <div className="space-y-4">
+              <label>
+                <span>Adresse complète</span>
+                <AddressAutocomplete
+                  value={coPropertyAddress.fullAddress}
+                  onChange={({ label }) => {
+                    console.log("Changing co-property address to:", label);
+                    setCoPropertyAddress({ fullAddress: label });
+                  }}
+                  placeholder="Saisissez l'adresse de la copropriété"
+                />
+              </label>
             </div>
 
-            <div>
+            <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Lots de copropriété</h3>
                 {lots.length < 10 && (
                   <button
                     onClick={addLot}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-[#0b8043] hover:text-[#097339]"
+                    className="text-[#0b8043] hover:text-[#097339] flex items-center"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Ajouter un lot
@@ -477,6 +505,28 @@ export function PropertyTab({
             </div>
           </div>
         </div>
+      ) : propertyType === 'house' && !isInCopropriete && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Désignation du bien
+          </h3>
+          <div className="space-y-4">
+            <label>
+              <span>Description officielle</span>
+              <textarea
+                value={officialDesignation}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  console.log("Changing official designation to:", newValue);
+                  setOfficialDesignation(newValue);
+                }}
+                rows={4}
+                className="w-full"
+                placeholder="Saisissez la désignation officielle du bien..."
+              />
+            </label>
+          </div>
+        </div>
       )}
 
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -594,7 +644,11 @@ export function PropertyTab({
                 </div>
                 <select
                   value={occupationStatus}
-                  onChange={(e) => setOccupationStatus(e.target.value as OccupationStatus)}
+                  onChange={(e) => {
+                    const newValue = e.target.value as OccupationStatus;
+                    console.log("Changing occupation status to:", newValue);
+                    setOccupationStatus(newValue);
+                  }}
                   className="w-full"
                 >
                   <option value="occupied-by-seller">Occupé par le(s) vendeur(s)</option>
@@ -612,7 +666,11 @@ export function PropertyTab({
                 </div>
                 <select
                   value={dpeStatus}
-                  onChange={(e) => setDpeStatus(e.target.value as DPEStatus)}
+                  onChange={(e) => {
+                    const newValue = e.target.value as DPEStatus;
+                    console.log("Changing DPE status to:", newValue);
+                    setDpeStatus(newValue);
+                  }}
                   className="w-full"
                 >
                   <option value="completed">DPE déjà établi</option>

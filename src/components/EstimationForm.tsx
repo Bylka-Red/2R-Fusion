@@ -28,6 +28,9 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   const [notes, setNotes] = useState(estimation?.notes || '');
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [formData, setFormData] = useState<Estimation>({
     ...estimation,
@@ -117,7 +120,6 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     }]
   });
 
-  // Effet pour mettre à jour les notes lorsque l'estimation change
   useEffect(() => {
     if (estimation) {
       setNotes(estimation.notes || '');
@@ -128,14 +130,12 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     }
   }, [estimation]);
 
-  // Effet pour récupérer les données de l'estimation
   useEffect(() => {
     const fetchEstimationData = async () => {
       if (estimation?.id) {
         const fetchedEstimation = await getEstimation(estimation.id);
         if (fetchedEstimation) {
           setFormData(fetchedEstimation);
-          console.log('Fetched owners:', fetchedEstimation.owners); // Log pour vérifier les propriétaires récupérés
         }
       }
     };
@@ -167,6 +167,29 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
     }
   };
 
+  const handleQuickSave = async () => {
+  try {
+    setIsSaving(true);
+    setError(null);
+    setSaveSuccess(false);
+
+    const updatedFormData = {
+      ...formData,
+      status: 'completed' as const,
+      notes: notes
+    };
+    await saveEstimation(updatedFormData);
+    onSave(updatedFormData);
+    setSaveSuccess(true);
+  } catch (error) {
+    console.error('Error saving estimation:', error);
+    setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+
   const handleEstimationDateChange = (newDate: string) => {
     handleChange('estimationDate', newDate);
   };
@@ -176,17 +199,26 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Empêcher la soumission par défaut du formulaire
+    
     try {
+      setIsSaving(true);
+      setError(null);
+      setSaveSuccess(false);
+
       const updatedFormData = {
         ...formData,
         status: 'completed' as const,
         notes: notes
       };
       await saveEstimation(updatedFormData);
-      onSave(updatedFormData);
+      onSave(updatedFormData); // Cette fonction devrait maintenant rediriger vers la liste des estimations
+      setSaveSuccess(true);
     } catch (error) {
       console.error('Error saving estimation:', error);
+      setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -198,6 +230,30 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
       setPdfError('Une erreur est survenue lors de la génération du document Word. Veuillez réessayer.');
     }
   };
+
+  const handleSaveWithoutEvent = async () => {
+  try {
+    setIsSaving(true);
+    setError(null);
+    setSaveSuccess(false);
+
+    const updatedFormData = {
+      ...formData,
+      status: 'completed' as const,
+      notes: notes
+    };
+    await saveEstimation(updatedFormData);
+    onSave(updatedFormData);
+    setSaveSuccess(true);
+  } catch (error) {
+    console.error('Error saving estimation:', error);
+    setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+
 
   const tabs = [
     { id: 1, name: 'Propriétaires', icon: Users },
@@ -326,6 +382,10 @@ export function EstimationForm({ estimation, onSave, onCancel, commercials }: Es
             tabs={tabs}
             currentStep={currentStep}
             setCurrentStep={setCurrentStep}
+            estimation={formData}
+            onSave={handleSubmit}
+            isSaving={isSaving}
+            handleSaveWithoutEvent={handleSaveWithoutEvent}
           />
         </div>
 

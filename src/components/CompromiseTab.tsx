@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Building2, User, Euro, Phone, Mail, Plus, Trash2, FileText, CheckSquare } from 'lucide-react';
+import { Euro, Calendar, Building2, User, Phone, Mail, Plus, Trash2, FileText, CheckSquare } from 'lucide-react';
 import type { Mandate, Seller, Commercial, PurchaseOffer } from '../types';
 import { AddressAutocomplete } from './AddressAutocomplete';
 
@@ -69,10 +69,12 @@ export function CompromiseTab({
     result: ''
   }]);
 
-  const [totalPriceHAI, setTotalPriceHAI] = useState(mandate.netPrice + mandate.fees.ttc);
+  // Ajout de vérifications de sécurité pour les valeurs undefined
+  const mandateFees = mandate.fees || { ttc: 0, ht: 0 };
+  const [totalPriceHAI, setTotalPriceHAI] = useState((mandate.netPrice || 0) + (mandateFees.ttc || 0));
   const [fees, setFees] = useState({
-    ttc: mandate.fees.ttc,
-    ht: mandate.fees.ht
+    ttc: mandateFees.ttc || 0,
+    ht: mandateFees.ht || 0
   });
 
   const handleFeesChange = (value: number) => {
@@ -80,7 +82,7 @@ export function CompromiseTab({
     const ht = Math.round(ttc / 1.2);
     const newFees = { ttc, ht };
     setFees(newFees);
-    setTotalPriceHAI(mandate.netPrice + ttc);
+    setTotalPriceHAI((mandate.netPrice || 0) + ttc);
   };
 
   const vatAmount = Math.round((fees.ttc / 120) * 20);

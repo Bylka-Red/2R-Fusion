@@ -35,64 +35,73 @@ export function SellerForm({
     console.log(`SellerForm received seller ${index}:`, seller);
   }, [seller, index]);
 
-  const handleChange = (field: string, value: any) => {
-  console.log(`Changing ${field} to:`, value);
-  if (field === 'maritalStatus') {
-    const newSeller = { ...seller, [field]: value };
-
-    newSeller.marriageDetails = {
+  // Initialiser marriageDetails avec des valeurs par défaut si undefined
+  const sellerWithDefaults = {
+    ...seller,
+    marriageDetails: seller.marriageDetails || {
       date: '',
       place: '',
-      regime: 'community',
-    };
-    newSeller.customMaritalStatus = undefined;
-    newSeller.pacsDetails = undefined;
-    newSeller.divorceDetails = undefined;
-    newSeller.widowDetails = undefined;
+      regime: 'community'
+    }
+  };
 
-    if (value === 'celibataire-pacse') {
-      newSeller.pacsDetails = {
+  const handleChange = (field: string, value: any) => {
+    console.log(`Changing ${field} to:`, value);
+    if (field === 'maritalStatus') {
+      const newSeller = { ...sellerWithDefaults, [field]: value };
+
+      newSeller.marriageDetails = {
         date: '',
         place: '',
-        reference: '',
-        partnerName: '',
+        regime: 'community',
       };
-    } else if (value === 'divorce') {
-      newSeller.divorceDetails = {
-        exSpouseName: '',
-      };
-    } else if (value === 'veuf') {
-      newSeller.widowDetails = {
-        deceasedSpouseName: '',
-      };
+      newSeller.customMaritalStatus = undefined;
+      newSeller.pacsDetails = undefined;
+      newSeller.divorceDetails = undefined;
+      newSeller.widowDetails = undefined;
+
+      if (value === 'celibataire-pacse') {
+        newSeller.pacsDetails = {
+          date: '',
+          place: '',
+          reference: '',
+          partnerName: '',
+        };
+      } else if (value === 'divorce') {
+        newSeller.divorceDetails = {
+          exSpouseName: '',
+        };
+      } else if (value === 'veuf') {
+        newSeller.widowDetails = {
+          deceasedSpouseName: '',
+        };
+      }
+
+      onChange(newSeller);
+    } else if (field === 'pacsDetails') {
+      onChange({
+        ...sellerWithDefaults,
+        pacsDetails: { ...sellerWithDefaults.pacsDetails, ...value },
+      });
+    } else if (field === 'divorceDetails') {
+      onChange({
+        ...sellerWithDefaults,
+        divorceDetails: { ...sellerWithDefaults.divorceDetails, ...value },
+      });
+    } else if (field === 'widowDetails') {
+      onChange({
+        ...sellerWithDefaults,
+        widowDetails: { ...sellerWithDefaults.widowDetails, ...value },
+      });
+    } else if (field === 'marriageDetails') {
+      onChange({
+        ...sellerWithDefaults,
+        marriageDetails: { ...sellerWithDefaults.marriageDetails, ...value },
+      });
+    } else {
+      onChange({ ...sellerWithDefaults, [field]: value });
     }
-
-    onChange(newSeller);
-  } else if (field === 'pacsDetails') {
-    onChange({
-      ...seller,
-      pacsDetails: { ...seller.pacsDetails, ...value },
-    });
-  } else if (field === 'divorceDetails') {
-    onChange({
-      ...seller,
-      divorceDetails: { ...seller.divorceDetails, ...value },
-    });
-  } else if (field === 'widowDetails') {
-    onChange({
-      ...seller,
-      widowDetails: { ...seller.widowDetails, ...value },
-    });
-  } else if (field === 'marriageDetails') {
-    onChange({
-      ...seller,
-      marriageDetails: { ...seller.marriageDetails, ...value },
-    });
-  } else {
-    onChange({ ...seller, [field]: value });
-  }
-};
-
+  };
 
   const copyPreviousAddress = () => {
     if (previousSeller) {
@@ -111,11 +120,11 @@ export function SellerForm({
   };
 
   const shouldShowPropertyTypeSection = index === 0 &&
-    !['celibataire-non-pacse', 'divorce', 'veuf'].includes(seller.maritalStatus) &&
+    !['celibataire-non-pacse', 'divorce', 'veuf'].includes(sellerWithDefaults.maritalStatus) &&
     totalSellers === 1 &&
     showPropertyTypeSection;
 
-  const isMaritalStatusDisabled = index === 1 && seller.couple?.isCouple;
+  const isMaritalStatusDisabled = index === 1 && sellerWithDefaults.couple?.isCouple;
 
   return (
     <div className="form-section border-2 border-gray-200 hover:border-gray-300 transition-colors">
@@ -126,14 +135,14 @@ export function SellerForm({
               type="button"
               onClick={() => handleChange('type', 'individual')}
               className={`relative flex flex-col items-center gap-2 p-2 rounded-lg transition-colors ${
-                seller.type === 'individual'
+                sellerWithDefaults.type === 'individual'
                   ? 'text-[#0b8043] bg-green-50 ring-1 ring-[#0b8043]'
                   : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               <User2 className="h-4 w-4" />
               <span className="text-sm font-medium">Particulier</span>
-              {seller.type === 'individual' && (
+              {sellerWithDefaults.type === 'individual' && (
                 <span className="absolute -top-2 -right-2 bg-[#0b8043] text-white text-xs font-medium px-2 py-0.5 rounded-full">
                   {index + 1}
                 </span>
@@ -143,14 +152,14 @@ export function SellerForm({
               type="button"
               onClick={() => handleChange('type', 'company')}
               className={`relative flex flex-col items-center gap-2 p-2 rounded-lg transition-colors ${
-                seller.type === 'company'
+                sellerWithDefaults.type === 'company'
                   ? 'text-[#0b8043] bg-green-50 ring-1 ring-[#0b8043]'
                   : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               <Building2 className="h-4 w-4" />
               <span className="text-sm font-medium">Société</span>
-              {seller.type === 'company' && (
+              {sellerWithDefaults.type === 'company' && (
                 <span className="absolute -top-2 -right-2 bg-[#0b8043] text-white text-xs font-medium px-2 py-0.5 rounded-full">
                   {index + 1}
                 </span>
@@ -170,12 +179,12 @@ export function SellerForm({
       </div>
 
       <div className="space-y-6">
-        {seller.type === 'individual' && (
+        {sellerWithDefaults.type === 'individual' && (
           <div className="grid grid-cols-3 gap-4">
             <label>
               <span>Civilité</span>
               <select
-                value={seller.title}
+                value={sellerWithDefaults.title}
                 onChange={(e) => handleChange('title', e.target.value)}
               >
                 <option value="Mr">Monsieur</option>
@@ -190,7 +199,7 @@ export function SellerForm({
                 </div>
                 <input
                   type="text"
-                  value={seller.lastName}
+                  value={sellerWithDefaults.lastName}
                   onChange={(e) => handleChange('lastName', e.target.value.toUpperCase())}
                   className="pl-10"
                 />
@@ -200,21 +209,21 @@ export function SellerForm({
               <span>Prénom</span>
               <input
                 type="text"
-                value={seller.firstName}
+                value={sellerWithDefaults.firstName}
                 onChange={(e) => handleChange('firstName', e.target.value)}
               />
             </label>
           </div>
         )}
 
-        {seller.type === 'company' && (
+        {sellerWithDefaults.type === 'company' && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <label>
                 <span>Forme Juridique</span>
                 <input
                   type="text"
-                  value={seller.legalForm}
+                  value={sellerWithDefaults.legalForm}
                   onChange={(e) => handleChange('legalForm', e.target.value)}
                   placeholder="Ex: SARL, SAS, SA..."
                 />
@@ -223,7 +232,7 @@ export function SellerForm({
                 <span>Nom de la société</span>
                 <input
                   type="text"
-                  value={seller.companyName}
+                  value={sellerWithDefaults.companyName}
                   onChange={(e) => handleChange('companyName', e.target.value)}
                 />
               </label>
@@ -233,7 +242,7 @@ export function SellerForm({
                 <span>Capital de la société</span>
                 <input
                   type="text"
-                  value={seller.capital}
+                  value={sellerWithDefaults.capital}
                   onChange={(e) => handleChange('capital', e.target.value)}
                   placeholder="Ex: 10000"
                 />
@@ -242,7 +251,7 @@ export function SellerForm({
                 <label>
                   <span>Civilité</span>
                   <select
-                    value={seller.managerTitle}
+                    value={sellerWithDefaults.managerTitle}
                     onChange={(e) => handleChange('managerTitle', e.target.value)}
                   >
                     <option value="Mr">Monsieur</option>
@@ -253,7 +262,7 @@ export function SellerForm({
                   <span>Nom</span>
                   <input
                     type="text"
-                    value={seller.managerLastName}
+                    value={sellerWithDefaults.managerLastName}
                     onChange={(e) => handleChange('managerLastName', e.target.value)}
                   />
                 </label>
@@ -261,7 +270,7 @@ export function SellerForm({
                   <span>Prénom</span>
                   <input
                     type="text"
-                    value={seller.managerFirstName}
+                    value={sellerWithDefaults.managerFirstName}
                     onChange={(e) => handleChange('managerFirstName', e.target.value)}
                   />
                 </label>
@@ -272,7 +281,7 @@ export function SellerForm({
                 <span>Ville RCS</span>
                 <input
                   type="text"
-                  value={seller.rcsCity}
+                  value={sellerWithDefaults.rcsCity}
                   onChange={(e) => handleChange('rcsCity', e.target.value)}
                 />
               </label>
@@ -280,7 +289,7 @@ export function SellerForm({
                 <span>Numéro RCS</span>
                 <input
                   type="text"
-                  value={seller.rcsNumber}
+                  value={sellerWithDefaults.rcsNumber}
                   onChange={(e) => handleChange('rcsNumber', e.target.value)}
                 />
               </label>
@@ -288,13 +297,13 @@ export function SellerForm({
           </div>
         )}
 
-        {seller.type === 'individual' && (
+        {sellerWithDefaults.type === 'individual' && (
           <div className="grid grid-cols-3 gap-4">
             <label>
               <span>Date de naissance</span>
               <input
                 type="date"
-                value={seller.birthDate}
+                value={sellerWithDefaults.birthDate}
                 onChange={(e) => handleChange('birthDate', e.target.value)}
               />
             </label>
@@ -302,7 +311,7 @@ export function SellerForm({
               <span>Lieu de naissance</span>
               <input
                 type="text"
-                value={seller.birthPlace}
+                value={sellerWithDefaults.birthPlace}
                 onChange={(e) => handleChange('birthPlace', e.target.value)}
               />
             </label>
@@ -310,7 +319,7 @@ export function SellerForm({
               <span>Code postal de naissance</span>
               <input
                 type="text"
-                value={seller.birthPostalCode}
+                value={sellerWithDefaults.birthPostalCode}
                 onChange={(e) => handleChange('birthPostalCode', e.target.value)}
                 maxLength={5}
                 pattern="[0-9]*"
@@ -320,12 +329,12 @@ export function SellerForm({
         )}
 
         <div className="grid grid-cols-3 gap-4">
-          {seller.type === 'individual' && (
+          {sellerWithDefaults.type === 'individual' && (
             <label>
               <span>Profession</span>
               <input
                 type="text"
-                value={seller.profession}
+                value={sellerWithDefaults.profession}
                 onChange={(e) => handleChange('profession', e.target.value)}
               />
             </label>
@@ -338,7 +347,7 @@ export function SellerForm({
               </div>
               <input
                 type="tel"
-                value={seller.phone}
+                value={sellerWithDefaults.phone}
                 onChange={(e) => handleChange('phone', e.target.value)}
                 className="pl-10"
               />
@@ -352,7 +361,7 @@ export function SellerForm({
               </div>
               <input
                 type="email"
-                value={seller.email}
+                value={sellerWithDefaults.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 className="pl-10"
               />
@@ -364,7 +373,7 @@ export function SellerForm({
           <div className="flex items-center justify-between">
             <h4 className="form-section-title mb-0">
               <MapPin className="h-5 w-5" />
-              {seller.type === 'company' ? 'Adresse du siège social' : 'Adresse'}
+              {sellerWithDefaults.type === 'company' ? 'Adresse du siège social' : 'Adresse'}
             </h4>
             {index > 0 && previousSeller && (
               <button
@@ -380,7 +389,7 @@ export function SellerForm({
             <label>
               <span>Adresse complète</span>
               <AddressAutocomplete
-                value={seller.address.fullAddress}
+                value={sellerWithDefaults.address.fullAddress}
                 onChange={({ label }) => handleChange('address', { fullAddress: label })}
                 placeholder="Saisissez l'adresse"
               />
@@ -388,7 +397,7 @@ export function SellerForm({
           </div>
         </div>
 
-        {seller.type === 'individual' && (
+        {sellerWithDefaults.type === 'individual' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="form-section-title mb-0">
@@ -399,7 +408,7 @@ export function SellerForm({
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={seller.couple?.isCouple || false}
+                    checked={sellerWithDefaults.couple?.isCouple || false}
                     onChange={(e) => onCoupleChange(e.target.checked)}
                     className="rounded border-gray-300 text-[#0b8043] focus:ring-[#0b8043]"
                   />
@@ -412,14 +421,14 @@ export function SellerForm({
               <label>
                 <span>Nationalité</span>
                 <NationalitySelect
-                  value={seller.nationality}
+                  value={sellerWithDefaults.nationality}
                   onChange={(value) => handleChange('nationality', value)}
                 />
               </label>
               <label>
                 <span>État civil</span>
                 <select
-                  value={seller.maritalStatus}
+                  value={sellerWithDefaults.maritalStatus}
                   onChange={(e) => handleChange('maritalStatus', e.target.value)}
                   disabled={isMaritalStatusDisabled}
                   className={`mt-1.5 block w-full rounded-md border-0 px-2.5 py-1.5 ${
@@ -439,12 +448,12 @@ export function SellerForm({
               </label>
             </div>
 
-            {seller.maritalStatus === 'autre' && (
+            {sellerWithDefaults.maritalStatus === 'autre' && (
               <div className="space-y-4">
                 <label>
                   <span>Précisez votre situation matrimoniale</span>
                   <textarea
-                    value={seller.customMaritalStatus || ''}
+                    value={sellerWithDefaults.customMaritalStatus || ''}
                     onChange={(e) => handleChange('customMaritalStatus', e.target.value)}
                     placeholder="Décrivez votre situation matrimoniale"
                     className="mt-1.5 block w-full rounded-md border-0 px-2.5 py-1.5 bg-gray-50 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#0b8043] text-sm"
@@ -454,14 +463,14 @@ export function SellerForm({
               </div>
             )}
 
-            {seller.maritalStatus === 'celibataire-pacse' && (
+            {sellerWithDefaults.maritalStatus === 'celibataire-pacse' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <label>
                     <span>Date du PACS</span>
                     <input
                       type="date"
-                      value={seller.pacsDetails?.date || ''}
+                      value={sellerWithDefaults.pacsDetails?.date || ''}
                       onChange={(e) => handleChange('pacsDetails', { date: e.target.value })}
                       disabled={isMaritalStatusDisabled}
                     />
@@ -470,7 +479,7 @@ export function SellerForm({
                     <span>Ville du PACS</span>
                     <input
                       type="text"
-                      value={seller.pacsDetails?.place || ''}
+                      value={sellerWithDefaults.pacsDetails?.place || ''}
                       onChange={(e) => handleChange('pacsDetails', { place: e.target.value })}
                       placeholder="Ville de la mairie ou du tribunal"
                       disabled={isMaritalStatusDisabled}
@@ -481,7 +490,7 @@ export function SellerForm({
                   <span>Référence du PACS</span>
                   <input
                     type="text"
-                    value={seller.pacsDetails?.reference || ''}
+                    value={sellerWithDefaults.pacsDetails?.reference || ''}
                     onChange={(e) => handleChange('pacsDetails', { reference: e.target.value })}
                     placeholder="Numéro d'enregistrement du PACS"
                     disabled={isMaritalStatusDisabled}
@@ -492,7 +501,7 @@ export function SellerForm({
                     <span>Nom et prénom du partenaire</span>
                     <input
                       type="text"
-                      value={seller.pacsDetails?.partnerName || ''}
+                      value={sellerWithDefaults.pacsDetails?.partnerName || ''}
                       onChange={(e) => handleChange('pacsDetails', { partnerName: e.target.value })}
                       placeholder="Nom et prénom du partenaire pacsé"
                       disabled={isMaritalStatusDisabled}
@@ -502,13 +511,13 @@ export function SellerForm({
               </div>
             )}
 
-            {seller.maritalStatus === 'divorce' && index === 0 && (
+            {sellerWithDefaults.maritalStatus === 'divorce' && index === 0 && (
               <div className="space-y-4">
                 <label>
                   <span>Nom et prénom de l'ex-conjoint</span>
                   <input
                     type="text"
-                    value={seller.divorceDetails?.exSpouseName || ''}
+                    value={sellerWithDefaults.divorceDetails?.exSpouseName || ''}
                     onChange={(e) => handleChange('divorceDetails', { exSpouseName: e.target.value })}
                     placeholder="Nom et prénom de l'ex-conjoint"
                     disabled={isMaritalStatusDisabled}
@@ -517,13 +526,13 @@ export function SellerForm({
               </div>
             )}
 
-            {seller.maritalStatus === 'veuf' && index === 0 && (
+            {sellerWithDefaults.maritalStatus === 'veuf' && index === 0 && (
               <div className="space-y-4">
                 <label>
                   <span>Nom et prénom du conjoint décédé</span>
                   <input
                     type="text"
-                    value={seller.widowDetails?.deceasedSpouseName || ''}
+                    value={sellerWithDefaults.widowDetails?.deceasedSpouseName || ''}
                     onChange={(e) => handleChange('widowDetails', { deceasedSpouseName: e.target.value })}
                     placeholder="Nom et prénom du conjoint décédé"
                     disabled={isMaritalStatusDisabled}
@@ -532,17 +541,17 @@ export function SellerForm({
               </div>
             )}
 
-            {needsMarriageDetails(seller.maritalStatus) && (
+            {needsMarriageDetails(sellerWithDefaults.maritalStatus) && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <label>
                     <span>Date du mariage</span>
                     <input
                       type="date"
-                      value={seller.marriageDetails.date}
+                      value={sellerWithDefaults.marriageDetails.date}
                       onChange={(e) =>
                         handleChange('marriageDetails', {
-                          ...seller.marriageDetails,
+                          ...sellerWithDefaults.marriageDetails,
                           date: e.target.value,
                         })
                       }
@@ -553,10 +562,10 @@ export function SellerForm({
                     <span>Lieu du mariage</span>
                     <input
                       type="text"
-                      value={seller.marriageDetails.place}
+                      value={sellerWithDefaults.marriageDetails.place}
                       onChange={(e) =>
                         handleChange('marriageDetails', {
-                          ...seller.marriageDetails,
+                          ...sellerWithDefaults.marriageDetails,
                           place: e.target.value,
                         })
                       }
@@ -605,7 +614,7 @@ export function SellerForm({
                 <label className="inline-flex items-center">
                   <input
                     type="radio"
-                    checked={seller.hasFrenchTaxResidence}
+                    checked={sellerWithDefaults.hasFrenchTaxResidence}
                     onChange={() => handleChange('hasFrenchTaxResidence', true)}
                     className="rounded-full border-gray-300 text-[#0b8043] focus:ring-[#0b8043]"
                   />
@@ -614,7 +623,7 @@ export function SellerForm({
                 <label className="inline-flex items-center">
                   <input
                     type="radio"
-                    checked={!seller.hasFrenchTaxResidence}
+                    checked={!sellerWithDefaults.hasFrenchTaxResidence}
                     onChange={() => handleChange('hasFrenchTaxResidence', false)}
                     className="rounded-full border-gray-300 text-[#0b8043] focus:ring-[#0b8043]"
                   />

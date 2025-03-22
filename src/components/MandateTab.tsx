@@ -3,6 +3,8 @@ import { ChevronRight, User, Download, Key, Euro, History, Plus, Calendar, FileT
 import type { Mandate, Seller, PriceAmendment, PropertyAddress, PropertyLot, CadastralSection, Commercial } from '../types';
 import { generateMandateFromTemplate } from './MandateTemplateGenerator';
 import { saveMandate } from '../services/mandateService';
+import { CivilStatusModal } from './CivilStatusModal';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface MandateTabProps {
   mandate: Mandate;
@@ -38,27 +40,41 @@ export function MandateTab({
   commercials
 }: MandateTabProps) {
   const [showAmendmentHistory, setShowAmendmentHistory] = useState(false);
+  const [showCivilStatus, setShowCivilStatus] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const hasSellers = sellers.length > 0;
+  const fees = mandate.fees || { ttc: 0, ht: 0 };
+  const keys = mandate.keys || { hasKeys: false, receivedDate: '', returnedDate: '', details: '' };
+  const netPrice = typeof mandate.netPrice === 'number' ? mandate.netPrice : 0;
+  const feesTTC = typeof fees.ttc === 'number' ? fees.ttc : 0;
+  const totalPriceHAI = netPrice + feesTTC;
 
-  // Effet pour réinitialiser les messages d'erreur/succès
   useEffect(() => {
-    if (saveSuccess) {
-      const timer = setTimeout(() => setSaveSuccess(false), 3000);
-      return () => clearTimeout(timer);
+    if (cadastralSections.length === 0) {
+      onMandateChange('cadastralSections', [{
+        section: '',
+        number: '',
+        lieuDit: '',
+        surface: ''
+      }]);
     }
-  }, [saveSuccess]);
+  }, []);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0
-    }).format(price);
+  useEffect(() => {
+    console.log("MandateTab received updated props:", {
+      netPrice: mandate.netPrice,
+      fees: mandate.fees,
+      totalPriceHAI
+    });
+  }, [mandate.netPrice, mandate.fees, totalPriceHAI]);
+
+  const formatPrice = (price: number | undefined | null) => {
+    if (price === undefined || price === null) return '0';
+    return price.toLocaleString('fr-FR');
   };
 
   const formatDate = (date: string) => {
@@ -78,53 +94,63 @@ export function MandateTab({
     }
   };
 
-  const handleSave = async () => {
-    try {
-      setIsSaving(true);
-      setError(null);
-      setSaveSuccess(false);
+const handleSave = async () => {
+  try {
+    console.log("Saving mandate with values:", {
+      occupationStatus: mandate.occupationStatus, // Vérifiez ici
+      dpeStatus: mandate.dpeStatus // Vérifiez ici
+    });
 
-      // Vérification des vendeurs
-      if (!sellers || sellers.length === 0) {
-        throw new Error('Au moins un vendeur est requis');
-      }
+    setIsSaving(true);
+    setError(null);
+    setSaveSuccess(false);
 
-      // Préparation du mandat avec toutes les données nécessaires
-      const mandateToSave: Mandate = {
-        ...mandate,
-        sellers,
-        propertyAddress,
-        propertyType,
-        isInCopropriete: propertyType === 'copropriete',
-        coPropertyAddress,
-        lots,
-        officialDesignation,
-        cadastralSections,
-        occupationStatus,
-        dpeStatus,
-      };
-
-      // Sauvegarde du mandat
-      const savedMandate = await saveMandate(mandateToSave);
-
-      if (savedMandate) {
-        setSaveSuccess(true);
-        // Mise à jour du mandat dans le state parent si nécessaire
-        onMandateChange('mandate_number', savedMandate.mandate_number);
-      }
-    } catch (error) {
-      console.error('Error saving mandate:', error);
-      setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
-    } finally {
-      setIsSaving(false);
+    if (!sellers || sellers.length === 0) {
+      throw new Error('Au moins un vendeur est requis');
     }
-  };
 
-  // Vérification des frais
-  const fees = mandate.fees || { ttc: 0, ht: 0 };
+    const mandateToSave: Mandate = {
+      ...mandate,
+      sellers,
+      propertyAddress,
+      propertyType,
+      isInCopropriete: propertyType === 'copropriete',
+      coPropertyAddress,
+      lots,
+      officialDesignation,
+      cadastralSections,
+      occupationStatus: mandate.occupationStatus, // Assurez-vous que cette valeur est correcte
+      dpeStatus: mandate.dpeStatus, // Assurez-vous que cette valeur est correcte
+    };
 
-  // Vérification des clés
-  const keys = mandate.keys || { hasKeys: false, receivedDate: '', returnedDate: '', details: '' };
+    console.log('Saving mandate with data:', mandateToSave);
+
+    const savedMandate = await saveMandate(mandateToSave);
+
+    if (savedMandate) {
+      console.log('Mandate saved successfully:', savedMandate);
+      setSaveSuccess(true);
+
+      // Mise à jour explicite des valeurs monétaires
+      onMandateChange('netPrice', savedMandate.net_price);
+      onMandateChange('fees', {
+        ttc: savedMandate.fees_ttc,
+        ht: savedMandate.fees_ht
+      });
+
+      // Forcer la mise à jour du total
+      const totalPriceHAI = savedMandate.net_price + savedMandate.fees_ttc;
+      console.log('Updated total price HAI:', totalPriceHAI);
+    }
+  } catch (error) {
+    console.error('Error saving mandate:', error);
+    setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+
 
   return (
     <div className="space-y-8">
@@ -193,9 +219,10 @@ export function MandateTab({
                 <div className="relative">
                   <input
                     type="text"
-                    value={mandate.netPrice ? mandate.netPrice.toLocaleString('fr-FR') : '0'}
+                    value={formatPrice(mandate.netPrice)}
                     onChange={(e) => {
                       const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                      console.log('Setting net price to:', value);
                       onMandateChange('netPrice', value);
                     }}
                     className="pr-10"
@@ -212,9 +239,10 @@ export function MandateTab({
                 <div className="relative">
                   <input
                     type="text"
-                    value={fees.ttc ? fees.ttc.toLocaleString('fr-FR') : '0'}
+                    value={formatPrice(fees.ttc)}
                     onChange={(e) => {
                       const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                      console.log('Setting fees TTC to:', value);
                       onMandateChange('feesTTC', value);
                     }}
                     className="pr-10"
@@ -227,13 +255,14 @@ export function MandateTab({
             </div>
             <div>
               <label className="block">
-                <span>Honoraires HT</span>
+                <span>Prix Frais d'Agence Inclus</span>
                 <div className="relative">
                   <input
                     type="text"
-                    value={fees.ht ? fees.ht.toLocaleString('fr-FR') : '0'}
+                    value={formatPrice(totalPriceHAI)}
                     disabled
                     className="bg-gray-100 cursor-not-allowed pr-10"
+                    title="Ce champ est calculé automatiquement"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Euro className="h-4 w-4 text-gray-400" />
@@ -255,6 +284,70 @@ export function MandateTab({
             </label>
           </div>
         </div>
+
+        {(propertyType === 'copropriete' || (propertyType === 'monopropriete' && mandate.isInCopropriete)) && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Adresse officielle de la copropriété
+            </h3>
+            <div className="space-y-4">
+              <label>
+                <span>Adresse complète</span>
+                <AddressAutocomplete
+                  value={coPropertyAddress.fullAddress}
+                  onChange={({ label }) => onMandateChange('coPropertyAddress', { fullAddress: label })}
+                  placeholder="Saisissez l'adresse de la copropriété"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Lots de copropriété</h3>
+                {lots.length < 10 && (
+                  <button
+                    onClick={() => {
+                      const newLots = [...lots, {
+                        number: '',
+                        description: '',
+                        tantiemes: [{
+                          numerator: '',
+                          denominator: '10000',
+                          type: 'general'
+                        }]
+                      }];
+                      onMandateChange('lots', newLots);
+                    }}
+                    className="text-[#0b8043] hover:text-[#097339] flex items-center"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter un lot
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {propertyType === 'monopropriete' && !mandate.isInCopropriete && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Désignation du bien
+            </h3>
+            <div className="space-y-4">
+              <label>
+                <span>Description officielle</span>
+                <textarea
+                  value={officialDesignation}
+                  onChange={(e) => onMandateChange('officialDesignation', e.target.value)}
+                  rows={4}
+                  className="w-full"
+                  placeholder="Saisissez la désignation officielle du bien..."
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-4">
@@ -334,6 +427,13 @@ export function MandateTab({
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un avenant
             </button>
+            <button
+              onClick={() => setShowCivilStatus(true)}
+              className="inline-flex items-center px-4 py-2 border border-[#0b8043] text-sm font-medium rounded-md text-[#0b8043] hover:bg-green-50"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              État Civil
+            </button>
           </div>
           {hasSellers ? (
             <div className="flex gap-4">
@@ -358,7 +458,6 @@ export function MandateTab({
         </div>
       </div>
 
-      {/* Modal historique des avenants */}
       {showAmendmentHistory && mandate.amendments && mandate.amendments.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
@@ -409,7 +508,12 @@ export function MandateTab({
         </div>
       )}
 
-      {/* Messages d'erreur PDF */}
+      <CivilStatusModal
+        isOpen={showCivilStatus}
+        onClose={() => setShowCivilStatus(false)}
+        sellers={sellers}
+      />
+
       {pdfError && (
         <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           {pdfError}

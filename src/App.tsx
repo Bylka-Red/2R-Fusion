@@ -24,15 +24,15 @@ function App() {
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [estimations, setEstimations] = useState<Estimation[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [propertyAddress, setPropertyAddress] = useState<PropertyAddress>({ fullAddress: '' });
-  const [propertyType, setPropertyType] = useState<'monopropriete' | 'copropriete'>('copropriete');
-  const [propertyFamilyType, setPropertyFamilyType] = useState<'personal-not-family' | 'personal-family'>('personal-not-family');
-  const [coPropertyAddress, setCoPropertyAddress] = useState<PropertyAddress>({ fullAddress: '' });
-  const [lots, setLots] = useState<PropertyLot[]>([]);
-  const [officialDesignation, setOfficialDesignation] = useState('');
-  const [cadastralSections, setCadastralSections] = useState<CadastralSection[]>([]);
-  const [occupationStatus, setOccupationStatus] = useState<OccupationStatus>('occupied-by-seller');
-  const [dpeStatus, setDpeStatus] = useState<DPEStatus>('completed');
+  const [propertyAddress, setPropertyAddress] = useState(selectedMandate?.propertyAddress || { fullAddress: '' });
+  const [propertyType, setPropertyType] = useState<'monopropriete' | 'copropriete'>(selectedMandate?.propertyType || 'copropriete');
+  const [propertyFamilyType, setPropertyFamilyType] = useState<'personal-not-family' | 'personal-family'>(selectedMandate?.propertyFamilyType || 'personal-not-family');
+  const [coPropertyAddress, setCoPropertyAddress] = useState(selectedMandate?.coPropertyAddress || { fullAddress: '' });
+  const [lots, setLots] = useState(selectedMandate?.lots || []);
+  const [officialDesignation, setOfficialDesignation] = useState(selectedMandate?.officialDesignation || '');
+  const [cadastralSections, setCadastralSections] = useState(selectedMandate?.cadastralSections || []);
+  const [occupationStatus, setOccupationStatus] = useState<OccupationStatus>(selectedMandate?.occupationStatus || 'occupied-by-seller');
+  const [dpeStatus, setDpeStatus] = useState<DPEStatus>(selectedMandate?.dpeStatus || 'completed');
   const [showAmendmentModal, setShowAmendmentModal] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -84,11 +84,21 @@ function App() {
     }
   }, [session]);
 
+  useEffect(() => {
+    if (selectedMandate) {
+      setSelectedMandate({
+        ...selectedMandate,
+        occupationStatus,
+        dpeStatus
+      });
+    }
+  }, [occupationStatus, dpeStatus]);
+
   const fetchMandates = async () => {
     try {
       const { data, error } = await supabase
         .from('mandats')
-        .select('*, sellers(*)')
+        .select('*')
         .order('mandate_number', { ascending: true });
 
       if (error) throw error;
@@ -120,7 +130,35 @@ function App() {
     return <AuthForm />;
   }
 
-  const handleSave = async () => {
+  // Ajout d'une fonction utilitaire pour synchroniser les états avec selectedMandate
+  const syncSelectedMandate = () => {
+    if (!selectedMandate) return;
+
+    const updatedMandate = {
+      ...selectedMandate,
+      sellers,
+      propertyAddress,
+      propertyType,
+      propertyFamilyType,
+      coPropertyAddress,
+      lots,
+      officialDesignation,
+      cadastralSections,
+      occupationStatus,
+      dpeStatus,
+    };
+
+    console.log("Syncing mandate state:", {
+      sellers: updatedMandate.sellers,
+      officialDesignation: updatedMandate.officialDesignation,
+      propertyType: updatedMandate.propertyType
+    });
+
+    setSelectedMandate(updatedMandate);
+    return updatedMandate;
+  };
+
+  const handleSaveMandate = async () => {
     try {
       setIsSaving(true);
       setError(null);
@@ -130,36 +168,39 @@ function App() {
         throw new Error('Aucun mandat sélectionné');
       }
 
-      // Vérification des vendeurs
-      if (!sellers || sellers.length === 0) {
-        throw new Error('Au moins un vendeur est requis');
+      // Synchroniser les états avant la sauvegarde
+      const updatedMandate = syncSelectedMandate();
+      if (!updatedMandate) {
+        throw new Error('Erreur lors de la synchronisation des données');
       }
 
-      // Préparation du mandat avec toutes les données nécessaires
-      const mandateToSave: Mandate = {
-        ...selectedMandate,
-        sellers,
-        propertyAddress,
-        propertyType,
-        isInCopropriete: propertyType === 'copropriete',
-        coPropertyAddress,
-        lots,
-        officialDesignation,
-        cadastralSections,
-        occupationStatus,
-        dpeStatus,
-      };
+      console.log("Saving mandate with synced data:", {
+        lastName: updatedMandate.sellers?.[0]?.lastName,
+        officialDesignation: updatedMandate.officialDesignation,
+        propertyType: updatedMandate.propertyType
+      });
 
-      console.log("Saving mandate:", mandateToSave);
-
-      // Sauvegarde du mandat
-      const savedMandate = await saveMandate(mandateToSave);
+      const savedMandate = await saveMandate(updatedMandate);
 
       if (savedMandate) {
         setSaveSuccess(true);
-        // Mise à jour du mandat dans le state
-        setSelectedMandate(savedMandate);
-        // Rafraîchir la liste des mandats
+
+        const finalMandate = {
+          ...updatedMandate,
+          netPrice: savedMandate.net_price,
+          fees: {
+            ttc: savedMandate.fees_ttc,
+            ht: savedMandate.fees_ht
+          }
+        };
+
+        setSelectedMandate(finalMandate);
+        setMandates(prevMandates =>
+          prevMandates.map(m =>
+            m.mandate_number === finalMandate.mandate_number ? finalMandate : m
+          )
+        );
+
         await fetchMandates();
       }
     } catch (error) {
@@ -195,7 +236,6 @@ function App() {
     setSelectedMandate(newMandate);
     setActiveTab('sellers');
 
-    // Initialize with default seller
     setSellers([{
       type: 'individual',
       title: 'Mr',
@@ -212,7 +252,6 @@ function App() {
       }
     }]);
 
-    // Reset all other states
     setPropertyAddress({ fullAddress: '' });
     setPropertyType('copropriete');
     setPropertyFamilyType('personal-not-family');
@@ -261,7 +300,7 @@ function App() {
     setSellers(mandate.sellers);
     setPropertyAddress(mandate.propertyAddress);
     setPropertyType(mandate.propertyType);
-    setPropertyFamilyType(mandate.sellers[0].propertyType);
+    setPropertyFamilyType(mandate.propertyFamilyType);
     setCoPropertyAddress(mandate.coPropertyAddress || { fullAddress: '' });
     setLots(mandate.lots || []);
     setOfficialDesignation(mandate.officialDesignation || '');
@@ -270,11 +309,101 @@ function App() {
     setDpeStatus(mandate.dpeStatus || 'completed');
   };
 
+  const handlePropertyAddressChange = (address: { fullAddress: string }) => {
+    setPropertyAddress(address);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, propertyAddress: address }));
+  };
+
+  const handlePropertyTypeChange = (type: 'monopropriete' | 'copropriete') => {
+    console.log("Updating property type:", type);
+    setPropertyType(type);
+
+    // Mettre à jour selectedMandate immédiatement
+    if (selectedMandate) {
+      const updatedMandate = {
+        ...selectedMandate,
+        propertyType: type
+      };
+      setSelectedMandate(updatedMandate);
+      console.log("Updated selectedMandate with new property type:", updatedMandate.propertyType);
+    }
+  };
+
+  const handlePropertyFamilyTypeChange = (type: 'personal-not-family' | 'personal-family') => {
+    setPropertyFamilyType(type);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, propertyFamilyType: type }));
+  };
+
+  const handleCoPropertyAddressChange = (address: { fullAddress: string }) => {
+    setCoPropertyAddress(address);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, coPropertyAddress: address }));
+  };
+
+  const handleLotsChange = (lots: PropertyLot[]) => {
+    setLots(lots);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, lots: lots }));
+  };
+
+  const handleOfficialDesignationChange = (designation: string) => {
+    console.log("Updating official designation:", designation);
+    setOfficialDesignation(designation);
+
+    // Mettre à jour selectedMandate immédiatement
+    if (selectedMandate) {
+      const updatedMandate = {
+        ...selectedMandate,
+        officialDesignation: designation
+      };
+      setSelectedMandate(updatedMandate);
+      console.log("Updated selectedMandate with new designation:", updatedMandate.officialDesignation);
+    }
+  };
+
+  const handleCadastralSectionsChange = (sections: CadastralSection[]) => {
+    setCadastralSections(sections);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, cadastralSections: sections }));
+  };
+
+  const handleSellersChange = (sellers: Seller[]) => {
+    setSellers(sellers);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, sellers: sellers }));
+  };
+
+  const handleNetPriceChange = (price: number) => {
+    setNetPrice(price);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, netPrice: price }));
+  };
+
+  const handleFeesChange = (fees: { ttc: number; ht: number }) => {
+    setFees(fees);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, fees: fees }));
+  };
+
+  const handleOccupationStatusChange = (status: OccupationStatus) => {
+    setOccupationStatus(status);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, occupationStatus: status }));
+  };
+
+  const handleDpeStatusChange = (status: DPEStatus) => {
+    setDpeStatus(status);
+    setSelectedMandate(prevMandate => ({ ...prevMandate, dpeStatus: status }));
+  };
+
   const handleSellerChange = (index: number, updatedSeller: Seller) => {
     console.log(`Updating seller at index ${index}:`, updatedSeller);
     const newSellers = [...sellers];
     newSellers[index] = updatedSeller;
     setSellers(newSellers);
+
+    // Mettre à jour selectedMandate immédiatement
+    if (selectedMandate) {
+      const updatedMandate = {
+        ...selectedMandate,
+        sellers: newSellers
+      };
+      setSelectedMandate(updatedMandate);
+      console.log("Updated selectedMandate with new seller:", updatedMandate.sellers[index]);
+    }
   };
 
   const addSeller = () => {
@@ -299,11 +428,6 @@ function App() {
   const removeSeller = (index: number) => {
     console.log(`Removing seller at index ${index}.`);
     setSellers(sellers.filter((_, i) => i !== index));
-  };
-
-  const handlePropertyTypeChange = (type: 'personal-not-family' | 'personal-family') => {
-    console.log("Property type changed to:", type);
-    setPropertyFamilyType(type);
   };
 
   const copyFirstSellerAddress = () => {
@@ -551,7 +675,7 @@ function App() {
                   Retour à la liste
                 </button>
                 <button
-                  onClick={handleSave}
+                  onClick={handleSaveMandate}
                   disabled={isSaving}
                   className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#0b8043] hover:bg-[#097339] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043] ${
                     isSaving ? 'opacity-75 cursor-not-allowed' : ''

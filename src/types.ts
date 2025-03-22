@@ -242,26 +242,29 @@ export type Mandate = {
   };
   amendments?: PriceAmendment[];
   purchaseOffers?: PurchaseOffer[];
-  sellers: Seller[]; // Ajout de ce champ
-  propertyAddress: PropertyAddress; // Ajout de ce champ
-  propertyType: 'monopropriete' | 'copropriete'; // Ajout de ce champ
-  isInCopropriete: boolean; // Ajout de ce champ
-  surface: number; // Ajout de ce champ
-  landSurface?: number; // Ajout de ce champ
-  rooms: number; // Ajout de ce champ
-  bedrooms: number; // Ajout de ce champ
-  constructionYear?: number; // Ajout de ce champ
-  condition: string; // Ajout de ce champ
-  criteria: PropertyCriteria; // Ajout de ce champ
-  levels: Level[]; // Ajout de ce champ
-  features: PropertyFeature[]; // Ajout de ce champ
-  marketAnalysis: MarketAnalysis; // Ajout de ce champ
+  sellers: Seller[];
+  propertyAddress: PropertyAddress;
+  propertyType: 'monopropriete' | 'copropriete';
+  isInCopropriete: boolean;
+  occupationStatus: OccupationStatus;
+  dpeStatus: DPEStatus;
+  surface: number;
+  landSurface?: number;
+  rooms: number;
+  bedrooms: number;
+  constructionYear?: number;
+  condition: string;
+  criteria: PropertyCriteria;
+  levels: Level[];
+  features: PropertyFeature[];
+  marketAnalysis: MarketAnalysis;
   estimatedPrice: {
     low: number;
     high: number;
-  }; // Ajout de ce champ
-  pricePerSqm: number; // Ajout de ce champ
-  comments?: string; // Ajout de ce champ
+  };
+  pricePerSqm: number;
+  comments?: string;
+  etatcivilvendeurcomplet?: string;
 };
 
 export type OccupationStatus = 'occupied-by-seller' | 'vacant' | 'rented';

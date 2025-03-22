@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { SellerForm } from './SellerForm';
+import { CivilStatusModal } from './CivilStatusModal';
 import type { Seller } from '../types';
 
 interface SellersTabProps {
@@ -20,6 +21,8 @@ export function SellersTab({
   onPropertyTypeChange,
   propertyFamilyType
 }: SellersTabProps) {
+  const [showCivilStatus, setShowCivilStatus] = React.useState(false);
+
   useEffect(() => {
     console.log("SellersTab received sellers:", sellers);
   }, [sellers]);
@@ -58,7 +61,16 @@ export function SellersTab({
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">Informations des vendeurs</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-semibold text-gray-800">Informations des vendeurs</h2>
+          <button
+            onClick={() => setShowCivilStatus(true)}
+            className="inline-flex items-center px-3 py-1.5 text-sm rounded-md text-[#0b8043] border border-[#0b8043] hover:bg-green-50 transition-colors"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            État Civil
+          </button>
+        </div>
         <button
           onClick={onAddSeller}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#0b8043] hover:bg-[#097339] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043]"
@@ -71,34 +83,39 @@ export function SellersTab({
       <div className={`grid gap-8 ${sellers.length === 2 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
         {sellers.map((seller, index) => (
          <SellerForm
-  key={index}
-  seller={seller}
-  onChange={(updatedSeller) => {
-    console.log(`Updating seller ${index}:`, updatedSeller);
-    onSellerChange(index, updatedSeller);
+          key={index}
+          seller={seller}
+          onChange={(updatedSeller) => {
+            console.log(`Updating seller ${index}:`, updatedSeller);
+            onSellerChange(index, updatedSeller);
 
-    if (index === 0 && seller.couple?.isCouple && sellers.length >= 2) {
-      const updatedSeller2 = { ...sellers[1] };
-      updatedSeller2.maritalStatus = updatedSeller.maritalStatus;
-      updatedSeller2.marriageDetails = { ...updatedSeller.marriageDetails };
-      updatedSeller2.pacsDetails = updatedSeller.pacsDetails ? { ...updatedSeller.pacsDetails } : undefined;
-      updatedSeller2.divorceDetails = updatedSeller.divorceDetails ? { ...updatedSeller.divorceDetails } : undefined;
-      updatedSeller2.widowDetails = updatedSeller.widowDetails ? { ...updatedSeller.widowDetails } : undefined;
-      onSellerChange(1, updatedSeller2);
-    }
-  }}
-  onRemove={() => onRemoveSeller(index)}
-  canRemove={sellers.length > 1}
-  index={index}
-  previousSeller={index > 0 ? sellers[index - 1] : undefined}
-  onPropertyTypeChange={onPropertyTypeChange}
-  propertyFamilyType={propertyFamilyType}
-  totalSellers={sellers.length}
-  onCoupleChange={index === 1 ? handleCoupleChange : undefined}
-/>
-
+            if (index === 0 && seller.couple?.isCouple && sellers.length >= 2) {
+              const updatedSeller2 = { ...sellers[1] };
+              updatedSeller2.maritalStatus = updatedSeller.maritalStatus;
+              updatedSeller2.marriageDetails = { ...updatedSeller.marriageDetails };
+              updatedSeller2.pacsDetails = updatedSeller.pacsDetails ? { ...updatedSeller.pacsDetails } : undefined;
+              updatedSeller2.divorceDetails = updatedSeller.divorceDetails ? { ...updatedSeller.divorceDetails } : undefined;
+              updatedSeller2.widowDetails = updatedSeller.widowDetails ? { ...updatedSeller.widowDetails } : undefined;
+              onSellerChange(1, updatedSeller2);
+            }
+          }}
+          onRemove={() => onRemoveSeller(index)}
+          canRemove={sellers.length > 1}
+          index={index}
+          previousSeller={index > 0 ? sellers[index - 1] : undefined}
+          onPropertyTypeChange={onPropertyTypeChange}
+          propertyFamilyType={propertyFamilyType}
+          totalSellers={sellers.length}
+          onCoupleChange={index === 1 ? handleCoupleChange : undefined}
+        />
         ))}
       </div>
+
+      <CivilStatusModal
+        isOpen={showCivilStatus}
+        onClose={() => setShowCivilStatus(false)}
+        sellers={sellers}
+      />
     </div>
   );
 }
