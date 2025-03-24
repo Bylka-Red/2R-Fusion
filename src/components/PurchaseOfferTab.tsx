@@ -1,7 +1,9 @@
-import React from 'react';
-import { Euro, Calendar, Wallet, CreditCard, PiggyBank, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Euro, Calendar, Wallet, CreditCard, PiggyBank, Plus, Download } from 'lucide-react';
 import type { PurchaseOffer, Seller } from '../types';
 import { SellerForm } from './SellerForm';
+import { generatePurchaseOfferFromTemplate } from './PurchaseOfferTemplateGenerator';
+import { savePurchaseOffer } from '../services/purchaseOfferService';
 
 interface PurchaseOfferTabProps {
   offer: PurchaseOffer;
@@ -9,6 +11,7 @@ interface PurchaseOfferTabProps {
   onBuyerChange: (index: number, buyer: Seller) => void;
   onAddBuyer: () => void;
   onRemoveBuyer: (index: number) => void;
+  mandateNumber: string; // Prop for mandate number
 }
 
 export function PurchaseOfferTab({
@@ -17,26 +20,122 @@ export function PurchaseOfferTab({
   onBuyerChange,
   onAddBuyer,
   onRemoveBuyer,
+  mandateNumber // Prop for mandate number
 }: PurchaseOfferTabProps) {
-  // Calcul des dates et montants automatiques
-  const offerDate = new Date(offer.date);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const buyers = offer.buyers || [];
+
+  const offerDate = offer.date ? new Date(offer.date) : new Date();
   const offerEndDate = new Date(offerDate);
   offerEndDate.setDate(offerEndDate.getDate() + 10);
-  
+
   const compromiseDate = new Date(offerDate);
   compromiseDate.setDate(compromiseDate.getDate() + 15);
-  
-  const loanAmount = offer.amount * 1.08; // Montant de l'offre + 8%
+
+  const loanAmount = offer.amount * 1.08;
 
   const formatDate = (date: Date) => {
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', date);
+      return '';
+    }
     return date.toISOString().split('T')[0];
+  };
+
+  const handleGenerateOffer = async () => {
+    if (!offer.date || !offer.amount || !buyers.length) {
+      alert('Veuillez remplir tous les champs nécessaires avant de générer l\'offre.');
+      return;
+    }
+
+    if (!mandateNumber) {
+      setError('Numéro de mandat manquant');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      // Save the offer in Supabase
+      await savePurchaseOffer(offer, mandateNumber);
+
+      // Generate the Word document
+      await generatePurchaseOfferFromTemplate({
+        ...offer,
+        date: formatDate(offerDate),
+        endDate: formatDate(offerEndDate),
+        compromiseDate: formatDate(compromiseDate),
+        loanAmount
+      });
+
+      console.log("Offre générée et sauvegardée avec succès.");
+    } catch (error) {
+      console.error('Erreur lors de la génération ou de la sauvegarde de l\'offre:', error);
+      setError(error instanceof Error ? error.message : "Une erreur est survenue. Veuillez réessayer.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleOfferChange = (field: keyof PurchaseOffer, value: any) => {
+    console.log(`Updating offer field ${field}:`, value);
+    onOfferChange(field, value);
+  };
+
+  const handleBuyerChange = async (index: number, buyer: Seller) => {
+    try {
+      console.log("Mandate Number:", mandateNumber); // Debugging line
+      if (!mandateNumber) {
+        throw new Error('Numéro de mandat manquant');
+      }
+
+      setIsSaving(true);
+      setError(null);
+
+      // Update the buyer locally
+      onBuyerChange(index, buyer);
+
+      // Update the offer in Supabase
+      const updatedOffer = {
+        ...offer,
+        buyers: offer.buyers.map((b, i) => i === index ? buyer : b)
+      };
+
+      await savePurchaseOffer(updatedOffer, mandateNumber);
+      console.log("Offre mise à jour avec succès dans Supabase.");
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'offre:', error);
+      setError(error instanceof Error ? error.message : "Une erreur est survenue lors de la sauvegarde de l'offre.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Détails de l'offre</h2>
+        <button
+          onClick={handleGenerateOffer}
+          disabled={isSaving}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="h-5 w-5 mr-2" />
+          {isSaving ? 'Génération...' : 'Générer l\'offre'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
+
       <div className="space-y-8">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Détails de l'offre</h2>
           <div className="grid grid-cols-2 gap-6">
             <label>
               <div className="flex items-center gap-2 mb-2">
@@ -45,8 +144,8 @@ export function PurchaseOfferTab({
               </div>
               <input
                 type="date"
-                value={offer.date}
-                onChange={(e) => onOfferChange('date', e.target.value)}
+                value={offer.date || ''}
+                onChange={(e) => handleOfferChange('date', e.target.value)}
               />
             </label>
             <label>
@@ -57,10 +156,10 @@ export function PurchaseOfferTab({
               <div className="relative">
                 <input
                   type="text"
-                  value={offer.amount ? offer.amount.toLocaleString('fr-FR') : '0'}
+                  value={offer.amount ? offer.amount.toLocaleString('fr-FR') : ''}
                   onChange={(e) => {
                     const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                    onOfferChange('amount', value);
+                    handleOfferChange('amount', value);
                   }}
                   className="w-full pr-10"
                 />
@@ -81,10 +180,10 @@ export function PurchaseOfferTab({
             <div className="relative">
               <input
                 type="text"
-                value={offer.personalContribution ? offer.personalContribution.toLocaleString('fr-FR') : '0'}
+                value={offer.personalContribution ? offer.personalContribution.toLocaleString('fr-FR') : ''}
                 onChange={(e) => {
                   const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                  onOfferChange('personalContribution', value);
+                  handleOfferChange('personalContribution', value);
                 }}
                 className="w-full pr-10"
               />
@@ -101,10 +200,10 @@ export function PurchaseOfferTab({
             <div className="relative">
               <input
                 type="text"
-                value={offer.monthlyIncome ? offer.monthlyIncome.toLocaleString('fr-FR') : '0'}
+                value={offer.monthlyIncome ? offer.monthlyIncome.toLocaleString('fr-FR') : ''}
                 onChange={(e) => {
                   const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                  onOfferChange('monthlyIncome', value);
+                  handleOfferChange('monthlyIncome', value);
                 }}
                 className="w-full pr-10"
               />
@@ -124,10 +223,10 @@ export function PurchaseOfferTab({
             <div className="relative">
               <input
                 type="text"
-                value={offer.currentLoans ? offer.currentLoans.toLocaleString('fr-FR') : '0'}
+                value={offer.currentLoans ? offer.currentLoans.toLocaleString('fr-FR') : ''}
                 onChange={(e) => {
                   const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                  onOfferChange('currentLoans', value);
+                  handleOfferChange('currentLoans', value);
                 }}
                 className="w-full pr-10"
               />
@@ -144,10 +243,10 @@ export function PurchaseOfferTab({
             <div className="relative">
               <input
                 type="text"
-                value={offer.deposit ? offer.deposit.toLocaleString('fr-FR') : '0'}
+                value={offer.deposit ? offer.deposit.toLocaleString('fr-FR') : ''}
                 onChange={(e) => {
                   const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                  onOfferChange('deposit', value);
+                  handleOfferChange('deposit', value);
                 }}
                 className="w-full pr-10"
               />
@@ -218,60 +317,19 @@ export function PurchaseOfferTab({
             </button>
           </div>
 
-          <div className={`grid gap-8 ${offer.buyers.length === 2 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
-            {offer.buyers.map((buyer, index) => (
+          <div className={`grid gap-8 ${buyers.length === 2 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+            {buyers.map((buyer, index) => (
               <SellerForm
                 key={index}
                 seller={buyer}
-                onChange={(updatedBuyer) => {
-                  onBuyerChange(index, updatedBuyer);
-                  
-                  if (index === 0 && buyer.couple?.isCouple && offer.buyers.length >= 2) {
-                    const updatedBuyer2 = { ...offer.buyers[1] };
-                    updatedBuyer2.maritalStatus = updatedBuyer.maritalStatus;
-                    updatedBuyer2.marriageDetails = { ...updatedBuyer.marriageDetails };
-                    updatedBuyer2.pacsDetails = updatedBuyer.pacsDetails ? { ...updatedBuyer.pacsDetails } : undefined;
-                    updatedBuyer2.divorceDetails = updatedBuyer.divorceDetails ? { ...updatedBuyer.divorceDetails } : undefined;
-                    updatedBuyer2.widowDetails = updatedBuyer.widowDetails ? { ...updatedBuyer.widowDetails } : undefined;
-                    onBuyerChange(1, updatedBuyer2);
-                  }
-                }}
+                onChange={(updatedBuyer) => handleBuyerChange(index, updatedBuyer)}
                 onRemove={() => onRemoveBuyer(index)}
-                canRemove={offer.buyers.length > 1}
+                canRemove={buyers.length > 1}
                 index={index}
-                previousSeller={index > 0 ? offer.buyers[index - 1] : undefined}
+                previousSeller={index > 0 ? buyers[index - 1] : undefined}
                 onPropertyTypeChange={() => {}}
                 propertyFamilyType="personal-not-family"
-                totalSellers={offer.buyers.length}
-                onCoupleChange={index === 1 ? (isCouple) => {
-                  if (offer.buyers.length >= 2) {
-                    const updatedBuyer2 = { ...offer.buyers[1] };
-                    
-                    if (isCouple) {
-                      updatedBuyer2.maritalStatus = offer.buyers[0].maritalStatus;
-                      updatedBuyer2.marriageDetails = { ...offer.buyers[0].marriageDetails };
-                      updatedBuyer2.pacsDetails = offer.buyers[0].pacsDetails ? { ...offer.buyers[0].pacsDetails } : undefined;
-                      updatedBuyer2.divorceDetails = offer.buyers[0].divorceDetails ? { ...offer.buyers[0].divorceDetails } : undefined;
-                      updatedBuyer2.widowDetails = offer.buyers[0].widowDetails ? { ...offer.buyers[0].widowDetails } : undefined;
-                      updatedBuyer2.couple = { isCouple: true, partnerId: 0 };
-
-                      const updatedBuyer1 = {
-                        ...offer.buyers[0],
-                        couple: { isCouple: true, partnerId: 1 }
-                      };
-                      onBuyerChange(0, updatedBuyer1);
-                    } else {
-                      updatedBuyer2.couple = undefined;
-                      const updatedBuyer1 = {
-                        ...offer.buyers[0],
-                        couple: undefined
-                      };
-                      onBuyerChange(0, updatedBuyer1);
-                    }
-                    
-                    onBuyerChange(1, updatedBuyer2);
-                  }
-                } : undefined}
+                totalSellers={buyers.length}
                 showPropertyTypeSection={false}
               />
             ))}

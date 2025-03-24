@@ -223,6 +223,20 @@ export type PriceAmendment = {
   };
 };
 
+export type PurchaseOffer = {
+  id: string;
+  date: string;
+  amount: number;
+  personalContribution: number;
+  monthlyIncome: number;
+  currentLoans: number;
+  deposit: number;
+  endDate?: string;
+  loanAmount?: number;
+  compromiseDate?: string;
+  buyers: Seller[];
+};
+
 export type Mandate = {
   date: string;
   type: MandateType;
@@ -280,15 +294,4 @@ export type Commercial = {
   facebook?: string;
   instagram?: string;
   whatsapp?: string;
-};
-
-export type PurchaseOffer = {
-  id: string;
-  date: string;
-  amount: number;
-  personalContribution: number;
-  monthlyIncome: number;
-  currentLoans: number;
-  deposit: number;
-  buyers: Seller[];
 };

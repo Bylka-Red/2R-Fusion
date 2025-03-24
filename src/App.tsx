@@ -13,7 +13,7 @@ import { AuthForm } from './components/AuthForm';
 import { supabase } from './lib/supabase';
 import { DashboardIcon } from './components/DashboardIcon';
 import { DashboardModal } from './components/DashboardModal';
-import type { Seller, PropertyLot, PropertyAddress, CadastralSection, Mandate, OccupationStatus, DPEStatus, Estimation, Commercial } from './types';
+import type { Seller, PropertyLot, PropertyAddress, CadastralSection, Mandate, OccupationStatus, DPEStatus, Estimation, Commercial, PurchaseOffer } from './types';
 import { saveMandate } from './services/mandateService';
 
 function App() {
@@ -68,6 +68,31 @@ function App() {
       photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956',
     }
   ]);
+
+  const [offer, setOffer] = useState<PurchaseOffer>({
+    id: crypto.randomUUID(),
+    date: new Date().toISOString().split('T')[0],
+    amount: 0,
+    personalContribution: 0,
+    monthlyIncome: 0,
+    currentLoans: 0,
+    deposit: 0,
+    buyers: [{
+      type: 'individual',
+      title: 'Mr',
+      firstName: '',
+      lastName: '',
+      address: { fullAddress: '' },
+      phone: '',
+      email: '',
+      hasFrenchTaxResidence: true,
+      marriageDetails: {
+        date: '',
+        place: '',
+        regime: 'community'
+      }
+    }]
+  });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -174,10 +199,10 @@ function App() {
         throw new Error('Erreur lors de la synchronisation des données');
       }
 
-      console.log("Saving mandate with synced data:", {
-        lastName: updatedMandate.sellers?.[0]?.lastName,
-        officialDesignation: updatedMandate.officialDesignation,
-        propertyType: updatedMandate.propertyType
+      // Vérifier les données de l'offre d'achat
+      console.log("Saving mandate with purchase offers:", {
+        hasOffers: !!updatedMandate.purchaseOffers?.length,
+        offerDetails: updatedMandate.purchaseOffers?.[0]
       });
 
       const savedMandate = await saveMandate(updatedMandate);
@@ -191,7 +216,8 @@ function App() {
           fees: {
             ttc: savedMandate.fees_ttc,
             ht: savedMandate.fees_ht
-          }
+          },
+          purchaseOffers: savedMandate.purchase_offers || []
         };
 
         setSelectedMandate(finalMandate);
@@ -495,6 +521,46 @@ function App() {
     }
   };
 
+  const handleBuyerChange = (index: number, buyer: Seller) => {
+    const updatedOffer = { ...offer };
+    if (!updatedOffer.buyers) {
+      updatedOffer.buyers = [];
+    }
+    updatedOffer.buyers[index] = buyer;
+    setOffer(updatedOffer);
+  };
+
+  const handleAddBuyer = () => {
+    const updatedOffer = { ...offer };
+    if (!updatedOffer.buyers) {
+      updatedOffer.buyers = [];
+    }
+    updatedOffer.buyers.push({
+      type: 'individual',
+      title: 'Mr',
+      firstName: '',
+      lastName: '',
+      address: { fullAddress: '' },
+      phone: '',
+      email: '',
+      hasFrenchTaxResidence: true,
+      marriageDetails: {
+        date: '',
+        place: '',
+        regime: 'community'
+      }
+    });
+    setOffer(updatedOffer);
+  };
+
+  const handleRemoveBuyer = (index: number) => {
+    const updatedOffer = { ...offer };
+    if (updatedOffer.buyers && updatedOffer.buyers.length > 1) {
+      updatedOffer.buyers = updatedOffer.buyers.filter((_, i) => i !== index);
+      setOffer(updatedOffer);
+    }
+  };
+
   const renderHeader = () => (
     <header className="bg-[#0b8043] shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -765,128 +831,25 @@ function App() {
             )}
 
             {activeTab === 'purchase-offer' && selectedMandate && (
-              <PurchaseOfferTab
-                offer={selectedMandate.purchaseOffers?.[0] || {
-                  id: crypto.randomUUID(),
-                  date: new Date().toISOString().split('T')[0],
-                  amount: 0,
-                  personalContribution: 0,
-                  monthlyIncome: 0,
-                  currentLoans: 0,
-                  deposit: 0,
-                  buyers: [{
-                    type: 'individual',
-                    title: 'Mr',
-                    firstName: '',
-                    lastName: '',
-                    address: { fullAddress: '' },
-                    phone: '',
-                    email: '',
-                    hasFrenchTaxResidence: true,
-                    marriageDetails: {
-                      date: '',
-                      place: '',
-                      regime: 'community',
-                    },
-                  }]
-                }}
-                onOfferChange={(field, value) => {
-                  const updatedMandate = { ...selectedMandate };
-                  if (!updatedMandate.purchaseOffers) {
-                    updatedMandate.purchaseOffers = [{
-                      id: crypto.randomUUID(),
-                      date: new Date().toISOString().split('T')[0],
-                      amount: 0,
-                      personalContribution: 0,
-                      monthlyIncome: 0,
-                      currentLoans: 0,
-                      deposit: 0,
-                      buyers: [{
-                        type: 'individual',
-                        title: 'Mr',
-                        firstName: '',
-                        lastName: '',
-                        address: { fullAddress: '' },
-                        phone: '',
-                        email: '',
-                        hasFrenchTaxResidence: true,
-                        marriageDetails: {
-                          date: '',
-                          place: '',
-                          regime: 'community',
-                        },
-                      }]
-                    }];
-                  }
-                  updatedMandate.purchaseOffers[0] = {
-                    ...updatedMandate.purchaseOffers[0],
-                    [field]: value
-                  };
-                  updateSelectedMandate('purchaseOffers', updatedMandate.purchaseOffers);
-                }}
-                onBuyerChange={(index, buyer) => {
-                  const updatedMandate = { ...selectedMandate };
-                  if (!updatedMandate.purchaseOffers) {
-                    updatedMandate.purchaseOffers = [{
-                      id: crypto.randomUUID(),
-                      date: new Date().toISOString().split('T')[0],
-                      amount: 0,
-                      personalContribution: 0,
-                      monthlyIncome: 0,
-                      currentLoans: 0,
-                      deposit: 0,
-                      buyers: []
-                    }];
-                  }
-                  updatedMandate.purchaseOffers[0].buyers[index] = buyer;
-                  updateSelectedMandate('purchaseOffers', updatedMandate.purchaseOffers);
-                }}
-                onAddBuyer={() => {
-                  const updatedMandate = { ...selectedMandate };
-                  if (!updatedMandate.purchaseOffers) {
-                    updatedMandate.purchaseOffers = [{
-                      id: crypto.randomUUID(),
-                      date: new Date().toISOString().split('T')[0],
-                      amount: 0,
-                      personalContribution: 0,
-                      monthlyIncome: 0,
-                      currentLoans: 0,
-                      deposit: 0,
-                      buyers: []
-                    }];
-                  }
-                  updatedMandate.purchaseOffers[0].buyers.push({
-                    type: 'individual',
-                    title: 'Mr',
-                    firstName: '',
-                    lastName: '',
-                    address: { fullAddress: '' },
-                    phone: '',
-                    email: '',
-                    hasFrenchTaxResidence: true,
-                    marriageDetails: {
-                      date: '',
-                      place: '',
-                      regime: 'community',
-                    },
-                  });
-                  updateSelectedMandate('purchaseOffers', updatedMandate.purchaseOffers);
-                }}
-                onRemoveBuyer={(index) => {
-                  const updatedMandate = { ...selectedMandate };
-                  if (updatedMandate.purchaseOffers?.[0].buyers.length > 1) {
-                    updatedMandate.purchaseOffers[0].buyers.splice(index, 1);
-                    updateSelectedMandate('purchaseOffers', updatedMandate.purchaseOffers);
-                  }
-                }}
-              />
+             <PurchaseOfferTab
+  offer={offer}
+  onOfferChange={(field, value) => {
+    const updatedOffer = { ...offer, [field]: value };
+    setOffer(updatedOffer);
+  }}
+  onBuyerChange={handleBuyerChange}
+  onAddBuyer={handleAddBuyer}
+  onRemoveBuyer={handleRemoveBuyer}
+  mandateNumber={selectedMandate?.mandate_number} // Pass the mandateNumber here
+/>
+
             )}
 
             {activeTab === 'compromise' && selectedMandate && (
               <CompromiseTab
                 mandate={selectedMandate}
                 sellers={sellers}
-                offer={selectedMandate.purchaseOffers?.[0]}
+                offer={offer}
                 commercials={commercials}
                 propertyType={propertyType}
               />

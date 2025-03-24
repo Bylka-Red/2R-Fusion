@@ -1,0 +1,13 @@
+# Ignorer tous les fichiers et dossiers par défaut
+*
+
+# Ne pas ignorer les fichiers spécifiques sur lesquels vous travaillez
+!src/utils/numberToWords.ts
+!src/components/MandateTemplateGenerator.ts
+!src/services/purchaseOfferService.ts
+!src/services/mandateService.ts
+!src/components/PurchaseOfferTab.tsx
+!src/components/SellerForm.tsx
+
+# Ne pas ignorer le fichier .bolt/ignore lui-même
+!.bolt/ignore
