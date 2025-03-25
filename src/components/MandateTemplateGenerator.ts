@@ -14,22 +14,13 @@ const formatSurface = (surface: string): string => {
   return `${ha.toString().padStart(2, '0')}ha ${a.toString().padStart(2, '0')}a ${ca.toString().padStart(2, '0')}ca`;
 };
 
-// Fonction pour formater les sections cadastrales
+// Nouvelle fonction pour formater les sections cadastrales
 const formatCadastralSections = (sections: any[]): string => {
   if (!sections || sections.length === 0) return '';
 
   let result = '';
   sections.forEach((section) => {
-    // Vérifier que toutes les valeurs nécessaires sont présentes
-    const sectionValue = section.section || '';
-    const numberValue = section.number || '';
-    const lieuDitValue = section.lieuDit || '';
-    const surfaceValue = section.surface || '0';
-
-    // Formater la ligne uniquement si au moins une des valeurs est présente
-    if (sectionValue || numberValue || lieuDitValue || surfaceValue !== '0') {
-      result += `•\tSection ${sectionValue} / Numéro ${numberValue} / Lieudit : ${lieuDitValue} / Surface : ${formatSurface(surfaceValue)}\n`;
-    }
+    result += `•\tSection ${section.section || ''} / Numéro ${section.number || ''} / Lieudit : ${section.lieuDit || ''} / Surface : ${formatSurface(section.surface || '0')}\n`;
   });
 
   // Retirez le dernier saut de ligne
@@ -666,13 +657,10 @@ Ces honoraires seront compris dans le prix de vente indiqué ci-dessus, soit un 
 
       // Ajouter cette ligne dans l'objet data
       dpeText: getDPEText(mandate.dpeStatus),
-
-      // Ajouter ou modifier cette ligne
-      officialDesignation: mandate.officialDesignation || '', // Assurez-vous que cette ligne est présente
     };
 
-    console.log("Valeur de officialDesignation:", data.officialDesignation);
-    console.log("Valeur de propertyDescription:", data.propertyDescription);
+    console.log("Valeur de etatGeneral avant rendu :", data.etatGeneral);
+    console.log("Données complètes passées à Docxtemplater :", data);
 
     try {
       console.log("Remplacement des balises...");
@@ -697,16 +685,8 @@ Ces honoraires seront compris dans le prix de vente indiqué ci-dessus, soit un 
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
 
-    // APRÈS
-const formattedMandateDate = new Date(mandate.date).toLocaleDateString('fr-FR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric'
-}).replace(/\//g, '-');
-
-const fileName = `Mandat de Vente du ${formattedMandateDate} - ${data.nomProprietaire} - ${mandate.mandate_number}.docx`;
-
-
+    const city = extractCity(data.adresseBien);
+    const fileName = `Mandat ${data.typeMandat} - ${city} - ${formattedDate}.docx`;
 
     console.log("Téléchargement du document...");
     saveAs(generatedDoc, fileName);

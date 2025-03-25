@@ -74,6 +74,7 @@ export async function getMandates() {
           details: mandate.keys_details || ''
         },
         amendments: mandate.amendments || [],
+        purchaseOffers: mandate.purchase_offers || [],
         sellers: [{
           type: 'individual',
           title: mandate.owner_title || 'Mr',
@@ -230,6 +231,7 @@ export async function getMandate(mandate_number: string) {
         details: data.keys_details || ''
       },
       amendments: data.amendments || [],
+      purchaseOffers: data.purchase_offers || [],
       sellers: [{
         type: 'individual',
         title: data.owner_title || 'Mr',
@@ -347,10 +349,12 @@ export async function getMandate(mandate_number: string) {
 
 export async function saveMandate(mandate: Mandate) {
   try {
+    // Vérification plus détaillée des données reçues
     console.log("Données reçues dans saveMandate:", {
       lastName: mandate.sellers?.[0]?.lastName,
       officialDesignation: mandate.officialDesignation,
       propertyType: mandate.propertyType,
+      // Ajout d'une vérification plus approfondie
       mandateNumber: mandate.mandate_number,
       sellersCount: mandate.sellers?.length || 0
     });
@@ -359,13 +363,16 @@ export async function saveMandate(mandate: Mandate) {
       throw new Error('Le mandat doit avoir au moins un vendeur');
     }
 
+    // Création d'une copie profonde du mandat pour éviter les mutations
+    // Utilisation de structuredClone pour une copie plus fiable (si disponible dans votre environnement)
     const mandateCopy = typeof structuredClone !== 'undefined'
       ? structuredClone(mandate)
       : JSON.parse(JSON.stringify(mandate));
 
+    // Vérification post-copie
     console.log("Après copie profonde:", {
       lastName: mandateCopy.sellers?.[0]?.lastName,
-      officialDesignation: mandateCopy.officialDesignation,
+      officialDesignation: mandateCopy.officialDesignation
     });
 
     const netPrice = toNumber(mandateCopy.netPrice);
@@ -382,12 +389,14 @@ export async function saveMandate(mandate: Mandate) {
 
     const etatcivilvendeurcomplet = generateCivilStatus(mandateCopy.sellers);
 
+    // Vérification des données critiques avant sauvegarde
     console.log("Vérification des données critiques avant sauvegarde:", {
       sellers: mandateCopy.sellers,
       officialDesignation: mandateCopy.officialDesignation,
-      propertyType: mandateCopy.propertyType,
+      propertyType: mandateCopy.propertyType
     });
 
+    // Préparation des données pour la sauvegarde
     const mandateData = {
       mandate_number: mandateCopy.mandate_number,
       date: formatDate(mandateCopy.date) || new Date().toISOString().split('T')[0],
@@ -403,6 +412,7 @@ export async function saveMandate(mandate: Mandate) {
       keys_returned_date: formatDate(mandateCopy.keys?.returnedDate),
       keys_details: mandateCopy.keys?.details || '',
       amendments: mandateCopy.amendments || [],
+      purchase_offers: mandateCopy.purchaseOffers || [],
 
       // Informations du vendeur
       owner_title: mandateCopy.sellers[0].title || 'Mr',
@@ -500,14 +510,14 @@ export async function saveMandate(mandate: Mandate) {
       lots: JSON.stringify(mandateCopy.lots || [])
     };
 
+    // Vérification finale des données préparées
     console.log("Données préparées pour Supabase:", {
       owner_last_name: mandateData.owner_last_name,
       official_designation: mandateData.official_designation,
-      property_type: mandateData.property_type,
+      property_type: mandateData.property_type
     });
 
-    console.log("Données complètes envoyées à Supabase:", mandateData);
-
+    // Sauvegarde dans Supabase
     const { data, error } = await supabase
       .from('mandats')
       .upsert(mandateData, {
