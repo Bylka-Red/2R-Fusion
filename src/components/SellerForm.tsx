@@ -16,6 +16,8 @@ interface SellerFormProps {
   totalSellers: number;
   onCoupleChange?: (isCouple: boolean) => void;
   showPropertyTypeSection?: boolean;
+  isSecondary?: boolean;
+  isAdditional?: boolean;
 }
 
 export function SellerForm({
@@ -29,7 +31,9 @@ export function SellerForm({
   propertyFamilyType,
   totalSellers,
   onCoupleChange,
-  showPropertyTypeSection = true
+  showPropertyTypeSection = true,
+  isSecondary = false,
+  isAdditional = false
 }: SellerFormProps) {
   useEffect(() => {
     console.log(`SellerForm received seller ${index}:`, seller);
@@ -112,10 +116,10 @@ export function SellerForm({
 
   const needsMarriageDetails = (status: string) => {
     return [
+      'marie-sans-contrat',
       'communaute-acquets',
       'separation-biens',
-      'communaute-universelle',
-      'marie-sans-contrat'
+      'communaute-universelle'
     ].includes(status);
   };
 
@@ -126,10 +130,22 @@ export function SellerForm({
 
   const isMaritalStatusDisabled = index === 1 && sellerWithDefaults.couple?.isCouple;
 
+  // Déterminer le titre de la section en fonction du type de vendeur
+  const getSellerTitle = () => {
+    if (isSecondary) return "Second vendeur";
+    if (isAdditional) return `Vendeur supplémentaire ${index + 1}`;
+    return "Vendeur principal";
+  };
+
   return (
-    <div className="form-section border-2 border-gray-200 hover:border-gray-300 transition-colors">
+    <div className={`form-section border-2 ${
+      isSecondary ? 'border-blue-200 hover:border-blue-300' :
+      isAdditional ? 'border-purple-200 hover:border-purple-300' :
+      'border-gray-200 hover:border-gray-300'
+    } transition-colors`}>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-6">
+          <h3 className="text-lg font-medium text-gray-900">{getSellerTitle()}</h3>
           <div className="flex items-center gap-6">
             <button
               type="button"
@@ -167,7 +183,7 @@ export function SellerForm({
             </button>
           </div>
         </div>
-        {canRemove && index > 0 && (
+        {canRemove && (
           <button
             onClick={onRemove}
             className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"

@@ -58,6 +58,13 @@ export function SellersTab({
     }
   };
 
+  // Fonction pour déterminer si un vendeur est secondaire ou additionnel
+  const getSellerType = (index: number) => {
+    if (index === 0) return { isSecondary: false, isAdditional: false };
+    if (index === 1) return { isSecondary: true, isAdditional: false };
+    return { isSecondary: false, isAdditional: true };
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
       <div className="flex justify-between items-center mb-6">
@@ -81,34 +88,39 @@ export function SellersTab({
       </div>
 
       <div className={`grid gap-8 ${sellers.length === 2 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
-        {sellers.map((seller, index) => (
-         <SellerForm
-          key={index}
-          seller={seller}
-          onChange={(updatedSeller) => {
-            console.log(`Updating seller ${index}:`, updatedSeller);
-            onSellerChange(index, updatedSeller);
+        {sellers.map((seller, index) => {
+          const { isSecondary, isAdditional } = getSellerType(index);
+          return (
+            <SellerForm
+              key={index}
+              seller={seller}
+              onChange={(updatedSeller) => {
+                console.log(`Updating seller ${index}:`, updatedSeller);
+                onSellerChange(index, updatedSeller);
 
-            if (index === 0 && seller.couple?.isCouple && sellers.length >= 2) {
-              const updatedSeller2 = { ...sellers[1] };
-              updatedSeller2.maritalStatus = updatedSeller.maritalStatus;
-              updatedSeller2.marriageDetails = { ...updatedSeller.marriageDetails };
-              updatedSeller2.pacsDetails = updatedSeller.pacsDetails ? { ...updatedSeller.pacsDetails } : undefined;
-              updatedSeller2.divorceDetails = updatedSeller.divorceDetails ? { ...updatedSeller.divorceDetails } : undefined;
-              updatedSeller2.widowDetails = updatedSeller.widowDetails ? { ...updatedSeller.widowDetails } : undefined;
-              onSellerChange(1, updatedSeller2);
-            }
-          }}
-          onRemove={() => onRemoveSeller(index)}
-          canRemove={sellers.length > 1}
-          index={index}
-          previousSeller={index > 0 ? sellers[index - 1] : undefined}
-          onPropertyTypeChange={onPropertyTypeChange}
-          propertyFamilyType={propertyFamilyType}
-          totalSellers={sellers.length}
-          onCoupleChange={index === 1 ? handleCoupleChange : undefined}
-        />
-        ))}
+                if (index === 0 && seller.couple?.isCouple && sellers.length >= 2) {
+                  const updatedSeller2 = { ...sellers[1] };
+                  updatedSeller2.maritalStatus = updatedSeller.maritalStatus;
+                  updatedSeller2.marriageDetails = { ...updatedSeller.marriageDetails };
+                  updatedSeller2.pacsDetails = updatedSeller.pacsDetails ? { ...updatedSeller.pacsDetails } : undefined;
+                  updatedSeller2.divorceDetails = updatedSeller.divorceDetails ? { ...updatedSeller.divorceDetails } : undefined;
+                  updatedSeller2.widowDetails = updatedSeller.widowDetails ? { ...updatedSeller.widowDetails } : undefined;
+                  onSellerChange(1, updatedSeller2);
+                }
+              }}
+              onRemove={() => onRemoveSeller(index)}
+              canRemove={sellers.length > 1}
+              index={index}
+              previousSeller={index > 0 ? sellers[index - 1] : undefined}
+              onPropertyTypeChange={onPropertyTypeChange}
+              propertyFamilyType={propertyFamilyType}
+              totalSellers={sellers.length}
+              onCoupleChange={index === 1 ? handleCoupleChange : undefined}
+              isSecondary={isSecondary}
+              isAdditional={isAdditional}
+            />
+          );
+        })}
       </div>
 
       <CivilStatusModal

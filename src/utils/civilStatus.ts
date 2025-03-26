@@ -9,157 +9,103 @@ const formatDate = (date: string): string => {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-const getMaritalStatusText = (seller: Seller): string => {
-  switch (seller.maritalStatus) {
-    case 'celibataire-non-pacse':
-      return 'Célibataire non lié(e) par un PACS';
-    case 'celibataire-pacse':
-      return 'Célibataire lié(e) par un PACS';
-    case 'marie-sans-contrat':
-      return 'Marié(e) sans contrat de mariage';
-    case 'communaute-acquets':
-      return 'Marié(e) sous le régime de la communauté d\'acquêts';
-    case 'separation-biens':
-      return 'Marié(e) sous le régime de la séparation de biens';
-    case 'communaute-universelle':
-      return 'Marié(e) sous le régime de la communauté universelle';
-    case 'divorce':
-      return 'Divorcé(e), non remarié(e)';
-    case 'veuf':
-      return 'Veuf(ve), non remarié(e)';
-    case 'autre':
-      return seller.customMaritalStatus || 'Autre situation matrimoniale';
-    default:
-      return '';
-  }
-};
-
-const getMarriageRegimeText = (regime: string): string => {
-  switch (regime) {
-    case 'community':
-      return 'communauté de biens réduite aux acquêts';
-    case 'separation':
-      return 'séparation de biens';
-    case 'universal':
-      return 'communauté universelle';
-    default:
-      return regime;
-  }
-};
-
 export const generateCivilStatus = (sellers: Seller[]): string => {
-  let civilStatus = sellers.map((seller, index) => {
+  if (sellers.length === 1) {
+    const seller = sellers[0];
     const title = seller.title === 'Mrs' ? 'Madame' : 'Monsieur';
-    const gender = seller.title === 'Mrs' ? 'e' : '';
-
     let text = `${title} ${seller.firstName} ${seller.lastName.toUpperCase()}`;
 
-    // Date et lieu de naissance
     if (seller.birthDate && seller.birthPlace) {
-      text += `, né${gender} le ${formatDate(seller.birthDate)} à ${seller.birthPlace.toUpperCase()}`;
+      text += `, né${seller.title === 'Mrs' ? 'e' : ''} le ${formatDate(seller.birthDate)} à ${seller.birthPlace.toUpperCase()}`;
       if (seller.birthPostalCode) {
         text += ` (${seller.birthPostalCode})`;
       }
     }
 
-    // Nationalité et profession
-    text += `, de nationalité ${seller.nationality || 'française'}`;
+    text += `, de nationalité ${seller.nationality || 'Française'}`;
     if (seller.profession) {
       text += `, ${seller.profession}`;
     }
+    text += '.\n';
 
-    text += `.\n`;
-
-    // Adresse
     if (seller.address) {
       text += `Demeurant ${typeof seller.address === 'string' ? seller.address : seller.address.fullAddress}.\n`;
     }
 
-    // Statut fiscal
-    text += `${seller.hasFrenchTaxResidence ? 'Résident' : 'Non résident'} au sens de la réglementation fiscale.\n`;
+    text += `${seller.hasFrenchTaxResidence ? 'Résident' : 'Non résident'} au sens de la réglementation fiscale.\n\n`;
 
-    // Détails spécifiques selon le statut matrimonial
-    if (seller.maritalStatus === 'celibataire-pacse' && seller.pacsDetails) {
-      text += `\nAyant conclu un pacte civil de solidarité`;
-      if (seller.pacsDetails.partnerName) {
-        text += ` avec ${seller.pacsDetails.partnerName}`;
-      }
-      if (seller.pacsDetails.date) {
-        text += `, enregistré le ${formatDate(seller.pacsDetails.date)}`;
-      }
-      if (seller.pacsDetails.place) {
-        text += ` à ${seller.pacsDetails.place}`;
-      }
-      if (seller.pacsDetails.reference) {
-        text += `\nNuméro d'enregistrement : ${seller.pacsDetails.reference}`;
-      }
-      text += '.\nContrat non modifié depuis lors.\n';
-    }
-
-    // Divorce
-    if (seller.maritalStatus === 'divorce' && seller.divorceDetails?.exSpouseName) {
-      text += `\nDivorcé${gender} de ${seller.divorceDetails.exSpouseName}.\n`;
-    }
-
-    // Veuvage
-    if (seller.maritalStatus === 'veuf' && seller.widowDetails?.deceasedSpouseName) {
-      text += `\nVeuf${gender} de ${seller.widowDetails.deceasedSpouseName}.\n`;
-    }
-
-    // Ajouter les détails du mariage pour un seul vendeur
-    if (sellers.length === 1 && needsMarriageDetails(seller.maritalStatus) && seller.marriageDetails) {
-      let regimeText = '';
-      switch (seller.maritalStatus) {
-        case 'communaute-acquets':
-          regimeText = 'communauté de biens réduite aux acquêts';
-          break;
-        case 'separation-biens':
-          regimeText = 'séparation de biens';
-          break;
-        case 'communaute-universelle':
-          regimeText = 'communauté universelle';
-          break;
-        default:
-          regimeText = 'communauté de biens réduite aux acquêts';
-      }
-
-      text += `\nMarié${gender} sous le régime de la ${regimeText}`;
-      if (seller.marriageDetails.date && seller.marriageDetails.place) {
-        text += ` à leur union célébrée à la mairie de ${seller.marriageDetails.place.toUpperCase()} le ${formatDate(seller.marriageDetails.date)}`;
-      }
-      text += '.\nStatut matrimonial qui n\'a subi à ce jour aucune modification conventionnelle ou judiciaire.\n';
-    }
-
-    // Ajouter le statut "Célibataire, non lié(e) par un PACS" pour un seul vendeur
-    if (sellers.length === 1 && seller.maritalStatus === 'celibataire-non-pacse') {
-      text += `\nCélibataire, non lié(e) par un PACS.\n`;
-    }
-
-    // Informations de contact pour un seul vendeur
-    if (sellers.length === 1) {
-      text += `\nTéléphone : ${seller.phone} – Adresse électronique : ${seller.email}\n`;
-      text += "En application de l'article L.223-2 du code de la consommation, le consommateur a le droit de s'inscrire à la liste Bloctel.\n";
+    switch (seller.maritalStatus) {
+      case 'celibataire-non-pacse':
+        text += 'Déclarant être célibataire non lié par un Pacte civil de solidarité.';
+        break;
+      case 'celibataire-pacse':
+        text += `Déclarant être célibataire soumis à un Pacte civil de solidarité conclu avec ${seller.pacsDetails?.partnerName || ''} et enregistré le ${seller.pacsDetails?.date ? formatDate(seller.pacsDetails.date) : ''}.`;
+        break;
+      case 'divorce':
+        text += `Divorcé${seller.title === 'Mrs' ? 'e' : ''} de ${seller.divorceDetails?.exSpouseName || ''}, non remarié${seller.title === 'Mrs' ? 'e' : ''}.`;
+        break;
+      case 'veuf':
+        text += `Déclarant être veuf${seller.title === 'Mrs' ? 've' : ''} de ${seller.widowDetails?.deceasedSpouseName || ''}, non remarié${seller.title === 'Mrs' ? 'e' : ''}.`;
+        break;
     }
 
     return text;
-  }).join('\n');
-
-  // Ajouter les détails du mariage après les informations des deux vendeurs
-  if (sellers.length > 1 && sellers[0].maritalStatus === 'communaute-acquets' && sellers[0].marriageDetails) {
-    const gender = sellers[0].title === 'Mrs' ? 'e' : '';
-    civilStatus += `\nMarié${gender} sous le régime de la communauté de biens réduite aux acquêts` +
-                   ` à leur union célébrée à la mairie de ${sellers[0].marriageDetails.place.toUpperCase()} le ${formatDate(sellers[0].marriageDetails.date)}.` +
-                   `\nStatut matrimonial qui n'a subi à ce jour aucune modification conventionnelle ou judiciaire.`;
   }
 
-  return civilStatus;
-};
+  if (sellers.length === 2) {
+    let text = '';
 
-const needsMarriageDetails = (status: string): boolean => {
-  return [
-    'marie-sans-contrat',
-    'communaute-acquets',
-    'separation-biens',
-    'communaute-universelle'
-  ].includes(status);
+    sellers.forEach((seller, index) => {
+      const title = seller.title === 'Mrs' ? 'Madame' : 'Monsieur';
+      text += `${title} ${seller.firstName} ${seller.lastName.toUpperCase()}`;
+
+      if (seller.birthDate && seller.birthPlace) {
+        text += `, né${seller.title === 'Mrs' ? 'e' : ''} le ${formatDate(seller.birthDate)} à ${seller.birthPlace.toUpperCase()}`;
+        if (seller.birthPostalCode) {
+          text += ` (${seller.birthPostalCode})`;
+        }
+      }
+
+      text += `, de nationalité ${seller.nationality || 'Française'}`;
+      if (seller.profession) {
+        text += `, ${seller.profession}`;
+      }
+      text += '.\n';
+
+      if (seller.address) {
+        text += `Demeurant ${typeof seller.address === 'string' ? seller.address : seller.address.fullAddress}.\n`;
+      }
+
+      text += `${seller.hasFrenchTaxResidence ? 'Résident' : 'Non résident'} au sens de la réglementation fiscale.\n\n`;
+    });
+
+    const marriageDetails = sellers[0].marriageDetails;
+    if (marriageDetails?.date && marriageDetails?.place) {
+      switch (sellers[0].maritalStatus) {
+        case 'communaute-acquets':
+          text += `Marié sous le régime de la communauté de biens réduite aux acquêts à leur union célébrée à la mairie de ${marriageDetails.place.toUpperCase()} le ${formatDate(marriageDetails.date)}.\n`;
+          break;
+        case 'separation-biens':
+          text += `Marié sous le régime de la séparation de biens à leur union célébrée à la mairie de ${marriageDetails.place.toUpperCase()} le ${formatDate(marriageDetails.date)}.\n`;
+          break;
+        case 'communaute-universelle':
+          text += `Marié sous le régime de la communauté universelle à leur union célébrée à la mairie de ${marriageDetails.place.toUpperCase()} le ${formatDate(marriageDetails.date)}.\n`;
+          break;
+        default:
+          text += `Marié à leur union célébrée à la mairie de ${marriageDetails.place.toUpperCase()} le ${formatDate(marriageDetails.date)}.\n`;
+      }
+      text += `Statut matrimonial qui n'a subi à ce jour aucune modification conventionnelle ou judiciaire.`;
+    } else if (sellers[0].maritalStatus === 'celibataire-non-pacse' && sellers[1].maritalStatus === 'celibataire-non-pacse') {
+      text += 'Célibataires non liés par un Pacte civil de solidarité, ainsi déclaré.';
+    } else if (sellers[0].maritalStatus === 'celibataire-pacse' && sellers[1].maritalStatus === 'celibataire-pacse') {
+      const pacsDetails = sellers[0].pacsDetails;
+      if (pacsDetails?.date) {
+        text += `Déclarant être célibataires soumis ensemble à un Pacte civil de solidarité régulièrement enregistré le ${formatDate(pacsDetails.date)}.`;
+      }
+    }
+
+    return text;
+  }
+
+  return '';
 };
