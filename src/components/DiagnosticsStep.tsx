@@ -84,6 +84,14 @@ export function DiagnosticsStep({
       disabled: true,
       countInTotal: false,
     },
+    {
+      name: 'Audit Énergétique',
+      description: 'Audit énergétique obligatoire',
+      required: true,
+      checked: true,
+      disabled: true,
+      countInTotal: true,
+    },
   ];
 
   const additionalDiagnostics = [
@@ -177,6 +185,13 @@ export function DiagnosticsStep({
                     <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                       Obligatoire
                     </span>
+                  )}
+                  {diagnostic.name === 'Audit Énergétique' && (
+                    <input
+                      type="date"
+                      className="text-sm font-medium text-gray-700"
+                      placeholder="Date de l'audit"
+                    />
                   )}
                 </div>
               </div>

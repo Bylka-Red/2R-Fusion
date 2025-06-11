@@ -6,10 +6,10 @@ import { AddressAutocomplete } from './AddressAutocomplete';
 interface PropertyTabProps {
   propertyAddress: PropertyAddress;
   setPropertyAddress: (address: PropertyAddress) => void;
-  propertyType: 'apartment' | 'house';
-  setPropertyType: (type: 'apartment' | 'house') => void;
+  propertyType: 'monopropriete' | 'copropriete';
+  setPropertyType: (type: 'monopropriete' | 'copropriete') => void;
   isInCopropriete: boolean;
-  setIsInCopropriete: (isInCopropriete: boolean) => void;
+  setIsInCopropriete: (value: boolean) => void;
   coPropertyAddress: PropertyAddress;
   setCoPropertyAddress: (address: PropertyAddress) => void;
   lots: PropertyLot[];
@@ -25,6 +25,7 @@ interface PropertyTabProps {
   setOccupationStatus: (status: OccupationStatus) => void;
   dpeStatus: DPEStatus;
   setDpeStatus: (status: DPEStatus) => void;
+  copyFirstSellerAddress: () => void;
 }
 
 const formatSurface = (surface: string): string => {
@@ -57,6 +58,7 @@ export function PropertyTab({
   setOccupationStatus,
   dpeStatus,
   setDpeStatus,
+  copyFirstSellerAddress,
 }: PropertyTabProps) {
   const addLot = () => {
     if (lots.length < 10) {
@@ -260,12 +262,13 @@ export function PropertyTab({
           <div className="flex items-center space-x-4">
             <button
               onClick={() => {
-                const newValue = 'apartment';
+                const newValue = 'copropriete';
                 console.log("Changing property type to:", newValue);
                 setPropertyType(newValue);
+                setIsInCopropriete(true);
               }}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                propertyType === 'apartment'
+                propertyType === 'copropriete'
                   ? 'bg-[#0b8043] text-white'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
@@ -275,12 +278,13 @@ export function PropertyTab({
             </button>
             <button
               onClick={() => {
-                const newValue = 'house';
+                const newValue = 'monopropriete';
                 console.log("Changing property type to:", newValue);
                 setPropertyType(newValue);
+                setIsInCopropriete(false);
               }}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                propertyType === 'house'
+                propertyType === 'monopropriete'
                   ? 'bg-[#0b8043] text-white'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
@@ -288,15 +292,14 @@ export function PropertyTab({
               <Home className="h-5 w-5" />
               Maison
             </button>
-            {propertyType === 'house' && (
+            {propertyType === 'monopropriete' && (
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={isInCopropriete}
                   onChange={(e) => {
-                    const newValue = e.target.checked;
-                    console.log("Changing isInCopropriete to:", newValue);
-                    setIsInCopropriete(newValue);
+                    console.log("Changing isInCopropriete to:", e.target.checked);
+                    setIsInCopropriete(e.target.checked);
                   }}
                   className="rounded border-gray-300 text-[#0b8043] focus:ring-[#0b8043]"
                 />
@@ -309,7 +312,7 @@ export function PropertyTab({
         </div>
       </div>
 
-      {propertyType === 'apartment' || (propertyType === 'house' && isInCopropriete) ? (
+      {(propertyType === 'copropriete' || isInCopropriete) && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900">
@@ -505,7 +508,9 @@ export function PropertyTab({
             </div>
           </div>
         </div>
-      ) : propertyType === 'house' && !isInCopropriete && (
+      )}
+
+      {propertyType === 'monopropriete' && !isInCopropriete && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Désignation du bien
@@ -573,6 +578,7 @@ export function PropertyTab({
                     <td className="px-3 py-2">
                       <input
                         type="text"
+                
                         value={section.section}
                         onChange={(e) => updateCadastralSection(index, 'section', e.target.value)}
                         className="w-20"

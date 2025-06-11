@@ -94,67 +94,88 @@ export function MandateTab({
     }
   };
 
-const handleSave = async () => {
-  try {
-    console.log("Saving mandate with values:", {
-      occupationStatus: mandate.occupationStatus, // Vérifiez ici
-      dpeStatus: mandate.dpeStatus // Vérifiez ici
-    });
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+      setSaveSuccess(false);
 
-    setIsSaving(true);
-    setError(null);
-    setSaveSuccess(false);
+      if (!sellers || sellers.length === 0) {
+        throw new Error('Au moins un vendeur est requis');
+      }
 
-    if (!sellers || sellers.length === 0) {
-      throw new Error('Au moins un vendeur est requis');
+      const mandateToSave: Mandate = {
+        ...mandate,
+        sellers,
+        propertyAddress,
+        propertyType,
+        isInCopropriete: propertyType === 'copropriete',
+        coPropertyAddress,
+        lots,
+        officialDesignation,
+        cadastralSections,
+        occupationStatus: mandate.occupationStatus,
+        dpeStatus: mandate.dpeStatus,
+      };
+
+      console.log('Saving mandate with data:', mandateToSave);
+
+      const savedMandate = await saveMandate(mandateToSave);
+
+      if (savedMandate) {
+        console.log('Mandate saved successfully:', savedMandate);
+        setSaveSuccess(true);
+
+        onMandateChange('netPrice', savedMandate.net_price);
+        onMandateChange('fees', {
+          ttc: savedMandate.fees_ttc,
+          ht: savedMandate.fees_ht
+        });
+
+        const totalPriceHAI = savedMandate.net_price + savedMandate.fees_ttc;
+        console.log('Updated total price HAI:', totalPriceHAI);
+      }
+    } catch (error) {
+      console.error('Error saving mandate:', error);
+      setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
+    } finally {
+      setIsSaving(false);
     }
-
-    const mandateToSave: Mandate = {
-      ...mandate,
-      sellers,
-      propertyAddress,
-      propertyType,
-      isInCopropriete: propertyType === 'copropriete',
-      coPropertyAddress,
-      lots,
-      officialDesignation,
-      cadastralSections,
-      occupationStatus: mandate.occupationStatus, // Assurez-vous que cette valeur est correcte
-      dpeStatus: mandate.dpeStatus, // Assurez-vous que cette valeur est correcte
-    };
-
-    console.log('Saving mandate with data:', mandateToSave);
-
-    const savedMandate = await saveMandate(mandateToSave);
-
-    if (savedMandate) {
-      console.log('Mandate saved successfully:', savedMandate);
-      setSaveSuccess(true);
-
-      // Mise à jour explicite des valeurs monétaires
-      onMandateChange('netPrice', savedMandate.net_price);
-      onMandateChange('fees', {
-        ttc: savedMandate.fees_ttc,
-        ht: savedMandate.fees_ht
-      });
-
-      // Forcer la mise à jour du total
-      const totalPriceHAI = savedMandate.net_price + savedMandate.fees_ttc;
-      console.log('Updated total price HAI:', totalPriceHAI);
-    }
-  } catch (error) {
-    console.error('Error saving mandate:', error);
-    setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
-  } finally {
-    setIsSaving(false);
-  }
-};
-
-
+  };
 
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-800">Informations du mandat</h2>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#0b8043] hover:bg-[#097339] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b8043] ${
+              isSaving ? 'opacity-75 cursor-not-allowed' : ''
+            }`}
+          >
+            {isSaving ? (
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-5 w-5 mr-2" />
+            )}
+            {isSaving ? 'Enregistrement...' : 'Enregistrer le mandat'}
+          </button>
+        </div>
+
+        {saveError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {saveError}
+          </div>
+        )}
+
+        {saveSuccess && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+            Le mandat a été enregistré avec succès.
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block">

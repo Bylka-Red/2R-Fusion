@@ -16,6 +16,7 @@ import { DashboardIcon } from './components/DashboardIcon';
 import { DashboardModal } from './components/DashboardModal';
 import type { Seller, PropertyLot, PropertyAddress, CadastralSection, Mandate, OccupationStatus, DPEStatus, Estimation, Commercial } from './types';
 import { saveMandate } from './services/mandateService';
+import { saveCompromiseDetails } from './services/compromiseService';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -27,6 +28,7 @@ function App() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [propertyAddress, setPropertyAddress] = useState(selectedMandate?.propertyAddress || { fullAddress: '' });
   const [propertyType, setPropertyType] = useState<'monopropriete' | 'copropriete'>(selectedMandate?.propertyType || 'copropriete');
+  const [isInCopropriete, setIsInCopropriete] = useState(selectedMandate?.isInCopropriete || false);
   const [propertyFamilyType, setPropertyFamilyType] = useState<'personal-not-family' | 'personal-family'>(selectedMandate?.propertyFamilyType || 'personal-not-family');
   const [coPropertyAddress, setCoPropertyAddress] = useState(selectedMandate?.coPropertyAddress || { fullAddress: '' });
   const [lots, setLots] = useState(selectedMandate?.lots || []);
@@ -90,10 +92,11 @@ function App() {
       setSelectedMandate({
         ...selectedMandate,
         occupationStatus,
-        dpeStatus
+        dpeStatus,
+        isInCopropriete
       });
     }
-  }, [occupationStatus, dpeStatus]);
+  }, [occupationStatus, dpeStatus, isInCopropriete]);
 
   const fetchMandates = async () => {
     try {
@@ -127,6 +130,23 @@ function App() {
     }
   };
 
+  const getCompromiseDetails = async (mandateNumber: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('compromises')
+        .select('*')
+        .eq('mandate_number', mandateNumber)
+        .single();
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching compromise details:', error);
+      throw error;
+    }
+  };
+
   if (!session) {
     return <AuthForm />;
   }
@@ -140,6 +160,7 @@ function App() {
       sellers,
       propertyAddress,
       propertyType,
+      isInCopropriete,
       propertyFamilyType,
       coPropertyAddress,
       lots,
@@ -153,6 +174,7 @@ function App() {
       sellers: updatedMandate.sellers,
       propertyAddress: updatedMandate.propertyAddress,
       propertyType: updatedMandate.propertyType,
+      isInCopropriete: updatedMandate.isInCopropriete
     });
 
     setSelectedMandate(updatedMandate);
@@ -160,56 +182,55 @@ function App() {
   };
 
   const handleSaveMandate = async () => {
-  try {
-    setIsSaving(true);
-    setError(null);
-    setSaveSuccess(false);
+    try {
+        setIsSaving(true);
+        setError(null);
+        setSaveSuccess(false);
 
-    if (!selectedMandate) {
-      throw new Error('Aucun mandat sélectionné');
-    }
+        if (!selectedMandate) {
+            throw new Error('Aucun mandat sélectionné');
+        }
 
-    // Synchroniser les états avant la sauvegarde
-    const updatedMandate = syncSelectedMandate();
-    if (!updatedMandate) {
-      throw new Error('Erreur lors de la synchronisation des données');
-    }
+        // Synchroniser les états avant la sauvegarde
+        const updatedMandate = syncSelectedMandate();
+        if (!updatedMandate) {
+            throw new Error('Erreur lors de la synchronisation des données');
+        }
 
-    const savedMandate = await saveMandate(updatedMandate);
+        // [AJOUT] Log avant sauvegarde
+        console.log("BEFORE SAVE - CURRENT NOTAIRES:", {
+            vendeur: updatedMandate.notaireVendeur?.id,
+            acquereur: updatedMandate.notaireAcquereur?.id
+        });
 
-    if (savedMandate) {
-      // Si une offre d'achat existe, la sauvegarder
-      if (updatedMandate.purchaseOffers?.[0]) {
-        await savePurchaseOffer(updatedMandate.mandate_number, updatedMandate.purchaseOffers[0]);
-      }
-
-      setSaveSuccess(true);
-
-        const finalMandate = {
-          ...updatedMandate,
-          netPrice: savedMandate.net_price,
-          fees: {
-            ttc: savedMandate.fees_ttc,
-            ht: savedMandate.fees_ht
-          }
+        const mandateToSave = {
+            ...updatedMandate,
+            notaireVendeur: updatedMandate.notaireVendeur || null,
+            notaireAcquereur: updatedMandate.notaireAcquereur || null,
+            syndic: updatedMandate.syndic || null
         };
 
-        setSelectedMandate(finalMandate);
-        setMandates(prevMandates =>
-          prevMandates.map(m =>
-            m.mandate_number === finalMandate.mandate_number ? finalMandate : m
-          )
-        );
+        const savedMandate = await saveMandate(mandateToSave); // Utilisez mandateToSave ici
 
-        await fetchMandates();
-      }
-  } catch (error) {
-    console.error('Error saving mandate:', error);
-    setError(error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement");
-  } finally {
-    setIsSaving(false);
-  }
-};
+        // [AJOUT] Log après sauvegarde
+        console.log("AFTER SAVE - CURRENT NOTAIRES:", {
+            vendeur: updatedMandate.notaireVendeur?.id,
+            acquereur: updatedMandate.notaireAcquereur?.id
+        });
+
+        if (savedMandate) {
+            if (updatedMandate.purchaseOffers?.[0]) {
+                await savePurchaseOffer(updatedMandate.mandate_number, updatedMandate.purchaseOffers[0]);
+            }
+            setSaveSuccess(true);
+        }
+    } catch (error) {
+        console.error('Error saving mandate:', error);
+        setError(error instanceof Error ? error.message : 'Erreur inconnue');
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   const createNewMandate = () => {
     console.log("Creating a new mandate...");
@@ -254,6 +275,7 @@ function App() {
 
     setPropertyAddress({ fullAddress: '' });
     setPropertyType('copropriete');
+    setIsInCopropriete(false);
     setPropertyFamilyType('personal-not-family');
     setCoPropertyAddress({ fullAddress: '' });
     setLots([]);
@@ -285,6 +307,48 @@ function App() {
     ));
   };
 
+  const handleOfferChange = (field: string, value: any) => {
+    const updatedMandate = { ...selectedMandate };
+    if (!updatedMandate.purchaseOffers) {
+      updatedMandate.purchaseOffers = [{
+        id: crypto.randomUUID(),
+        date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        personalContribution: 0,
+        monthlyIncome: 0,
+        currentLoans: 0,
+        deposit: 0,
+        buyers: [{
+          type: 'individual',
+          title: 'Mr',
+          firstName: '',
+          lastName: '',
+          address: { fullAddress: '' },
+          phone: '',
+          email: '',
+          hasFrenchTaxResidence: true,
+          marriageDetails: {
+            date: '',
+            place: '',
+            regime: 'community',
+          },
+        }]
+      }];
+    }
+    updatedMandate.purchaseOffers[0] = {
+      ...updatedMandate.purchaseOffers[0],
+      [field]: value
+    };
+
+    // Synchroniser mandate.netPrice avec offer.amount si nécessaire
+    if (field === 'amount') {
+      updatedMandate.netPrice = value;
+    }
+
+    updateSelectedMandate('purchaseOffers', updatedMandate.purchaseOffers);
+    updateSelectedMandate('netPrice', updatedMandate.netPrice);
+  };
+
   const deleteMandate = (mandate_number: string) => {
     console.log("Deleting mandate:", mandate_number);
     setMandates(mandates.filter(m => m.mandate_number !== mandate_number));
@@ -294,12 +358,13 @@ function App() {
   };
 
   const handleMandateSelect = async (mandate: Mandate) => {
-  console.log("Selecting mandate:", mandate);
-  setSelectedMandate(mandate);
-  setActiveTab('sellers');
-  setSellers(mandate.sellers);
+    console.log("Selecting mandate:", mandate);
+    setSelectedMandate(mandate);
+    setActiveTab('sellers');
+    setSellers(mandate.sellers);
     setPropertyAddress(mandate.propertyAddress);
     setPropertyType(mandate.propertyType);
+    setIsInCopropriete(mandate.isInCopropriete || false);
     setPropertyFamilyType(mandate.propertyFamilyType);
     setCoPropertyAddress(mandate.coPropertyAddress || { fullAddress: '' });
     setLots(mandate.lots || []);
@@ -322,7 +387,8 @@ function App() {
     if (selectedMandate) {
       const updatedMandate = {
         ...selectedMandate,
-        propertyType: type
+        propertyType: type,
+        isInCopropriete: type === 'copropriete' ? true : selectedMandate.isInCopropriete
       };
       setSelectedMandate(updatedMandate);
       console.log("Updated selectedMandate with new property type:", updatedMandate.propertyType);
@@ -491,6 +557,7 @@ function App() {
 
       setPropertyAddress(estimation.propertyAddress);
       setPropertyType('copropriete');
+      setIsInCopropriete(false);
       setPropertyFamilyType('personal-not-family');
     }
   };
@@ -726,6 +793,8 @@ function App() {
                 setPropertyAddress={setPropertyAddress}
                 propertyType={propertyType}
                 setPropertyType={setPropertyType}
+                isInCopropriete={isInCopropriete}
+                setIsInCopropriete={setIsInCopropriete}
                 coPropertyAddress={coPropertyAddress}
                 setCoPropertyAddress={setCoPropertyAddress}
                 lots={lots}
@@ -791,40 +860,7 @@ function App() {
                     },
                   }]
                 }}
-                onOfferChange={(field, value) => {
-                  const updatedMandate = { ...selectedMandate };
-                  if (!updatedMandate.purchaseOffers) {
-                    updatedMandate.purchaseOffers = [{
-                      id: crypto.randomUUID(),
-                      date: new Date().toISOString().split('T')[0],
-                      amount: 0,
-                      personalContribution: 0,
-                      monthlyIncome: 0,
-                      currentLoans: 0,
-                      deposit: 0,
-                      buyers: [{
-                        type: 'individual',
-                        title: 'Mr',
-                        firstName: '',
-                        lastName: '',
-                        address: { fullAddress: '' },
-                        phone: '',
-                        email: '',
-                        hasFrenchTaxResidence: true,
-                        marriageDetails: {
-                          date: '',
-                          place: '',
-                          regime: 'community',
-                        },
-                      }]
-                    }];
-                  }
-                  updatedMandate.purchaseOffers[0] = {
-                    ...updatedMandate.purchaseOffers[0],
-                    [field]: value
-                  };
-                  updateSelectedMandate('purchaseOffers', updatedMandate.purchaseOffers);
-                }}
+                onOfferChange={handleOfferChange}
                 onBuyerChange={(index, buyer) => {
                   const updatedMandate = { ...selectedMandate };
                   if (!updatedMandate.purchaseOffers) {
@@ -890,6 +926,7 @@ function App() {
                 offer={selectedMandate.purchaseOffers?.[0]}
                 commercials={commercials}
                 propertyType={propertyType}
+                isInCopropriete={isInCopropriete}
               />
             )}
 

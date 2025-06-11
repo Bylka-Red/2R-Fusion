@@ -223,6 +223,25 @@ export type PriceAmendment = {
   };
 };
 
+export type KitchenFurnitureItem = {
+  id: string;
+  name: string;
+  type: 'kitchen' | 'bathroom';
+  price: number;
+};
+
+export type CoPropertyInfo = {
+  lastGeneralMeetings: string[];
+  preStatusDate?: string;
+  coPropertyRulesDate?: string;
+  coPropertyRulesModificationDates: string[];
+  requiredDocuments: {
+    maintenanceLog: boolean;
+    registrationForm: boolean;
+    syntheticSheet: boolean;
+  };
+};
+
 export type Mandate = {
   date: string;
   type: MandateType;
@@ -265,6 +284,16 @@ export type Mandate = {
   pricePerSqm: number;
   comments?: string;
   etatcivilvendeurcomplet?: string;
+  notaireVendeur?: Notaire | null;
+  notaireAcquereur?: Notaire | null;
+  syndic?: Syndic | null;
+  kitchenFurniture?: KitchenFurnitureItem[];
+  officialDesignation?: string;
+  coPropertyAddress?: PropertyAddress;
+  cadastralSections?: CadastralSection[];
+  lots?: PropertyLot[];
+  coPropertyInfo?: CoPropertyInfo;
+  energyAuditDate?: string; // Ajout de la date d'audit énergétique
 };
 
 export type OccupationStatus = 'occupied-by-seller' | 'vacant' | 'rented';
@@ -281,6 +310,24 @@ export type Commercial = {
   instagram?: string;
   whatsapp?: string;
 };
+
+export interface DiagnosticInfo {
+  id: string;
+  type: 'carrez' | 'dpe' | 'electricity' | 'gas' | 'asbestos' | 'lead' | 'termites' | 'erp' | 'sanitation' | 'audit-energetique'; // Ajout du type 'audit-energetique'
+  status: 'pending' | 'completed' | 'not-required';
+  date?: string;
+  validUntil?: string;
+  provider?: string;
+  // Champs spécifiques pour l'amiante
+  asbestosPresence?: boolean;
+  // Champs spécifiques pour le plomb
+  leadPresence?: boolean;
+  leadConcentration?: 'above-threshold' | 'below-threshold';
+  // Champs spécifiques pour l'assainissement
+  sanitationStatus?: 'completed' | 'in-progress' | 'not-required';
+  // Société de diagnostic
+  diagnosticCompany?: string;
+}
 
 export type PurchaseOffer = {
   id: string;
