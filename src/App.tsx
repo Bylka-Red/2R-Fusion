@@ -69,6 +69,14 @@ function App() {
       phone: '0638226070',
       email: 'm.christelle@2r-immobilier.fr',
       photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956',
+    },
+    {
+      id: '4',
+      firstName: 'Guilhem',
+      lastName: 'JAQUENOD',
+      phone: '0685471541',
+      email: 'g.jaquenod@2r-immobilier.fr',
+      photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
     }
   ]);
 
