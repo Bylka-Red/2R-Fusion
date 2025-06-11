@@ -8,7 +8,7 @@ import { KitchenFurnitureModal } from './KitchenFurnitureModal';
 import type { Notaire } from '../services/notaireService';
 import type { Syndic } from '../services/syndicService';
 import { saveCompromiseDetails, getCompromiseDetails } from '../services/compromiseService';
-import { generateCompromiseFromTemplate } from './CompromiseTemplateGenerator';
+import { generateCompromiseFromTemplate } from './CompromisetemplateGenerator';
 
 interface DiagnosticType {
   id: string;
